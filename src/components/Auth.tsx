@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { useAuth } from '../auth'
+import { passwordError, usernameError } from '../lib/validate'
 
 type Mode = 'in' | 'up' | 'forgot'
 
 export function Auth() {
   const { signIn, signUp, resetPassword } = useAuth()
   const [mode, setMode] = useState<Mode>('in')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -34,12 +36,16 @@ export function Auth() {
       return
     }
 
-    if (!email || password.length < 6) {
-      setError('Enter an email and a password of at least 6 characters.')
-      return
+    if (!email) return setError('Enter your email.')
+    if (mode === 'up') {
+      const ue = usernameError(username)
+      if (ue) return setError(ue)
     }
+    const pe = passwordError(password)
+    if (pe) return setError(pe)
+
     setBusy(true)
-    const res = mode === 'in' ? await signIn(email, password) : await signUp(email, password)
+    const res = mode === 'in' ? await signIn(email, password) : await signUp(email, password, username.trim())
     setBusy(false)
     if (res.error) return setError(res.error)
     if (mode === 'up' && res.needsConfirm) {
@@ -77,13 +83,20 @@ export function Auth() {
       </div>
 
       <form onSubmit={submit} className="card" style={{ padding: '18px 16px' }}>
+        {mode === 'up' && (
+          <>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 6 }}>Username</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="3–30 chars, letters & numbers" style={{ ...inputStyle, marginBottom: 14 }} />
+          </>
+        )}
+
         <label className="eyebrow" style={{ display: 'block', marginBottom: 6 }}>Email</label>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" style={inputStyle} />
 
         {mode !== 'forgot' && (
           <>
             <label className="eyebrow" style={{ display: 'block', margin: '14px 0 6px' }}>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} placeholder="At least 6 characters" style={inputStyle} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} placeholder={mode === 'up' ? '8+ chars, 1 letter & 1 number' : 'Your password'} style={inputStyle} />
           </>
         )}
 

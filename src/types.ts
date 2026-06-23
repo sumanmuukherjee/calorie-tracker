@@ -39,4 +39,5 @@ export interface AppState {
   sheetOpen: boolean
   sheetMeal: MealName
   hydrating: boolean
+  avatarUrl?: string
 }

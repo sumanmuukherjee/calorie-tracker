@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { useAuth } from '../auth'
+import { passwordError } from '../lib/validate'
 
 export function UpdatePassword() {
   const { updatePassword } = useAuth()
@@ -13,7 +14,8 @@ export function UpdatePassword() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password.length < 6) return setError('Use at least 6 characters.')
+    const pe = passwordError(password)
+    if (pe) return setError(pe)
     if (password !== confirm) return setError('Passwords don’t match.')
     setBusy(true)
     const res = await updatePassword(password)

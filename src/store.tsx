@@ -20,6 +20,7 @@ type Action =
   | { type: 'FINISH_ONBOARDING'; profile: Profile; goal: Goal; rate: number }
   | { type: 'HYDRATE'; state: PersistedState }
   | { type: 'SET_HYDRATING'; value: boolean }
+  | { type: 'SET_AVATAR'; url: string }
   | { type: 'RESET' }
 
 const uid = () =>
@@ -130,6 +131,8 @@ function reducer(state: AppState, action: Action): AppState {
       }
     case 'SET_HYDRATING':
       return { ...state, hydrating: action.value }
+    case 'SET_AVATAR':
+      return { ...state, avatarUrl: action.url }
     case 'RESET':
       return freshDefault()
     default:

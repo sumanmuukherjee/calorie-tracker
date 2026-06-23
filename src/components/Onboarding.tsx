@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useStore } from '../store'
 import { useAuth } from '../auth'
+import { uploadAvatar } from '../lib/avatar'
 import { dailyTarget, macroTargets, tdee } from '../lib/nutrition'
 import type { Goal } from '../types'
 
@@ -15,6 +16,27 @@ export function Onboarding() {
   const { isCloud, user, signOut } = useAuth()
   const [goal, setGoal] = useState<Goal>(state.goal)
   const [rate, setRate] = useState(state.rate)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+
+  const username = (user?.user_metadata?.username as string | undefined) || ''
+  const initials = (username || user?.email || '?').slice(0, 2).toUpperCase()
+
+  const onPickAvatar = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setAvatarError('')
+    setUploadingAvatar(true)
+    try {
+      const url = await uploadAvatar(user.id, file)
+      dispatch({ type: 'SET_AVATAR', url })
+    } catch {
+      setAvatarError('Upload failed — try a smaller image.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const maintenance = tdee(state.profile)
   const target = dailyTarget(maintenance, goal, rate)
@@ -30,6 +52,59 @@ export function Onboarding() {
         </button>
         <span className="tiny muted">{state.onboarded ? 'Edit goal' : 'Step 3 of 4'}</span>
       </div>
+
+      {isCloud && user && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 22 }}>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Change profile photo"
+            style={{
+              position: 'relative',
+              width: 84,
+              height: 84,
+              borderRadius: '50%',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              background: 'var(--surface-2)',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {state.avatarUrl ? (
+              <img src={state.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: 28, fontWeight: 600, color: 'var(--text-2)' }}>{initials}</span>
+            )}
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid var(--bg)',
+              }}
+            >
+              <i className="ti ti-camera" style={{ fontSize: 14 }} />
+            </span>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={onPickAvatar} style={{ display: 'none' }} />
+          {username && <div style={{ fontSize: 16, fontWeight: 600, marginTop: 10 }}>{username}</div>}
+          {uploadingAvatar && <div className="tiny muted" style={{ marginTop: 4 }}>Uploading…</div>}
+          {avatarError && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{avatarError}</div>}
+        </div>
+      )}
 
       <h1 className="h-title" style={{ fontSize: 22, marginBottom: 4 }}>
         Set your daily goal
