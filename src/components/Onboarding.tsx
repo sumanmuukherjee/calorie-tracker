@@ -2,8 +2,8 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { uploadAvatar } from '../lib/avatar'
-import { dailyTarget, macroTargets, tdee } from '../lib/nutrition'
-import type { Goal } from '../types'
+import { ACTIVITY_LEVELS, dailyTarget, macroTargets, tdee } from '../lib/nutrition'
+import type { Goal, Profile } from '../types'
 
 const GOALS: { key: Goal; label: string }[] = [
   { key: 'lose', label: 'Lose weight' },
@@ -11,11 +11,35 @@ const GOALS: { key: Goal; label: string }[] = [
   { key: 'gain', label: 'Gain' },
 ]
 
+function Field({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(() => String(value))
+  return (
+    <div>
+      <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          const raw = e.target.value
+          setText(raw)
+          const n = parseFloat(raw)
+          if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n)))
+        }}
+        onBlur={() => setText(String(value))}
+        style={{ width: '100%', boxSizing: 'border-box', padding: '9px 10px', borderRadius: 'var(--radius-sm)', border: '0.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)', outline: 'none', fontSize: 15 }}
+      />
+    </div>
+  )
+}
+
 export function Onboarding() {
   const { state, dispatch } = useStore()
   const { isCloud, user, signOut } = useAuth()
   const [goal, setGoal] = useState<Goal>(state.goal)
   const [rate, setRate] = useState(state.rate)
+  const [profile, setProfile] = useState<Profile>(state.profile)
+  const setP = (patch: Partial<Profile>) => setProfile((p) => ({ ...p, ...patch }))
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState('')
@@ -38,11 +62,10 @@ export function Onboarding() {
     }
   }
 
-  const maintenance = tdee(state.profile)
+  const maintenance = tdee(profile)
   const target = dailyTarget(maintenance, goal, rate)
-  const macros = macroTargets(target, state.profile.weightKg, goal)
+  const macros = macroTargets(target, profile.weightKg, goal)
   const adjustment = Math.abs(target - maintenance)
-  const lbsNow = Math.round(state.profile.weightKg * 2.2046)
 
   return (
     <div className="fade-in screen-pad" style={{ paddingTop: 18 }}>
@@ -113,12 +136,38 @@ export function Onboarding() {
         From your profile we estimate you burn about <b style={{ color: 'var(--text)' }}>{maintenance.toLocaleString()} kcal</b>/day.
       </p>
 
-      <div className="strip row-between" style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 18 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <i className="ti ti-user" style={{ fontSize: 15 }} aria-hidden="true" />
-          Male · 32 · 5'10" · {lbsNow} lb · Moderate
-        </span>
-        <i className="ti ti-pencil" style={{ fontSize: 14, color: 'var(--text-3)' }} aria-label="Edit profile" />
+      <div className="card" style={{ padding: '12px 14px', marginBottom: 18 }}>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Your details</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {(['male', 'female'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setP({ sex: s })}
+              style={{ flex: 1, padding: '9px 4px', borderRadius: 'var(--radius-sm)', border: '0.5px solid var(--border)', background: profile.sex === s ? 'var(--accent)' : 'var(--surface)', color: profile.sex === s ? '#fff' : 'var(--text-2)', fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 12 }}>
+          <Field label="Age" value={profile.age} min={13} max={100} onChange={(v) => setP({ age: v })} />
+          <Field label="Height (cm)" value={profile.heightCm} min={120} max={230} onChange={(v) => setP({ heightCm: v })} />
+          <Field label="Weight (kg)" value={profile.weightKg} min={30} max={350} onChange={(v) => setP({ weightKg: v })} />
+        </div>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>Activity</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {ACTIVITY_LEVELS.map((a) => (
+            <button
+              key={a.value}
+              type="button"
+              onClick={() => setP({ activity: a.value })}
+              style={{ padding: '7px 11px', borderRadius: 999, border: '0.5px solid var(--border)', background: profile.activity === a.value ? 'var(--accent)' : 'transparent', color: profile.activity === a.value ? '#fff' : 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="eyebrow" style={{ marginBottom: 8 }}>I want to</div>
@@ -169,7 +218,7 @@ export function Onboarding() {
         </div>
       </div>
 
-      <button className="primary" onClick={() => dispatch({ type: 'FINISH_ONBOARDING', profile: state.profile, goal, rate })}>
+      <button className="primary" onClick={() => dispatch({ type: 'FINISH_ONBOARDING', profile, goal, rate })}>
         {state.onboarded ? 'Save goal' : 'Start tracking'}
       </button>
 
