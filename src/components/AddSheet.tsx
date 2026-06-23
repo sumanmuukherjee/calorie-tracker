@@ -60,6 +60,9 @@ export function AddSheet() {
   const isSearch = query.trim().length > 0
   const label = note || (isSearch ? 'Results' : 'Recent & frequent')
 
+  const mealItems = state.meals[state.sheetMeal]
+  const mealKcal = Math.round(mealItems.reduce((a, i) => a + i.kcal * i.qty, 0))
+
   return (
     <>
       <div className={`backdrop ${state.sheetOpen ? 'on' : ''}`} onClick={close} />
@@ -67,15 +70,25 @@ export function AddSheet() {
         <div className="grabber" />
         <div className="row-between" style={{ marginBottom: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 600 }}>Add food</span>
-          <i className="ti ti-x" style={{ fontSize: 20, color: 'var(--text-3)', cursor: 'pointer' }} role="button" aria-label="Close" onClick={close} />
+          <button
+            onClick={close}
+            style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Done
+          </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 7, marginBottom: 11 }}>
+        <div style={{ display: 'flex', gap: 7, marginBottom: 8 }}>
           {MEAL_ORDER.map((meal) => (
             <button key={meal} className={`mealchip ${state.sheetMeal === meal ? 'on' : ''}`} onClick={() => setMeal(meal)}>
               {meal}
             </button>
           ))}
+        </div>
+
+        <div className="tiny" style={{ color: 'var(--text-2)', margin: '0 0 11px 2px' }}>
+          {state.sheetMeal}: <b style={{ color: 'var(--text)', fontWeight: 600 }}>{mealKcal} kcal</b>
+          {mealItems.length ? ` · ${mealItems.length} item${mealItems.length > 1 ? 's' : ''}` : ' · tap items to add'}
         </div>
 
         <div style={{ position: 'relative', marginBottom: 11 }}>
@@ -135,7 +148,7 @@ export function AddSheet() {
                 className="foodrow"
                 onClick={() => {
                   dispatch({ type: 'ADD_FOOD', meal: state.sheetMeal, food })
-                  close()
+                  flash(`Added ${food.name}`)
                 }}
               >
                 <div style={{ minWidth: 0 }}>

@@ -1,21 +1,21 @@
 :root {
-  --bg: #ffffff;
-  --surface: #f6f5f0;
-  --surface-2: #ecebe4;
+  --bg: #faf9ff;
+  --surface: #f2effb;
+  --surface-2: #e7e1f6;
   --card: #ffffff;
-  --text: #1a1a18;
-  --text-2: #6b6a64;
-  --text-3: #9b9a92;
-  --border: rgba(0, 0, 0, 0.10);
-  --border-2: rgba(0, 0, 0, 0.16);
-  --accent: #1d9e75;
-  --accent-press: #178563;
-  --accent-soft: #e1f5ee;
-  --blue: #378add;
-  --amber: #ba7517;
-  --coral: #d85a30;
-  --danger: #e24b4a;
-  --warn: #c98a1e;
+  --text: #2a1747;
+  --text-2: #6b6286;
+  --text-3: #9a93b3;
+  --border: rgba(58, 29, 143, 0.12);
+  --border-2: rgba(58, 29, 143, 0.22);
+  --accent: #7c3aed;
+  --accent-press: #6d28d9;
+  --accent-soft: #efe9fc;
+  --blue: #5b3fb5;
+  --amber: #d97706;
+  --coral: #db2777;
+  --danger: #c61f1f;
+  --warn: #b45309;
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
@@ -25,18 +25,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1a18;
-    --surface: #242421;
-    --surface-2: #121210;
-    --card: #232321;
-    --text: #f5f4ef;
-    --text-2: #a8a79f;
-    --text-3: #76756e;
-    --border: rgba(255, 255, 255, 0.12);
-    --border-2: rgba(255, 255, 255, 0.20);
-    --accent: #2bb98c;
-    --accent-press: #25a87e;
-    --accent-soft: #14342b;
+    --bg: #161226;
+    --surface: #1f1838;
+    --surface-2: #2a2247;
+    --card: #1d1735;
+    --text: #efeafb;
+    --text-2: #a99fc8;
+    --text-3: #756c93;
+    --border: rgba(255, 255, 255, 0.10);
+    --border-2: rgba(255, 255, 255, 0.18);
+    --accent: #9b6cff;
+    --accent-press: #8b5cf6;
+    --accent-soft: #2a2150;
+    --blue: #8b7ff0;
+    --amber: #f0a13a;
+    --coral: #f472b6;
+    --danger: #f06868;
+    --warn: #f0a13a;
   }
 }
 
@@ -179,7 +184,7 @@ input {
   background: var(--accent); color: #fff; border: none;
   display: flex; align-items: center; justify-content: center;
   transform: translateY(-16px); cursor: pointer;
-  box-shadow: 0 6px 16px rgba(29, 158, 117, 0.4);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
   transition: transform 0.1s;
 }
 .fab:active { transform: translateY(-16px) scale(0.94); }

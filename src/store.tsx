@@ -21,6 +21,7 @@ type Action =
   | { type: 'HYDRATE'; state: PersistedState }
   | { type: 'SET_HYDRATING'; value: boolean }
   | { type: 'SET_AVATAR'; url: string }
+  | { type: 'LOG_WEIGHT'; kg: number }
   | { type: 'RESET' }
 
 const uid = () =>
@@ -30,6 +31,28 @@ const uid = () =>
 
 function emptyMeals(): Record<MealName, LoggedFood[]> {
   return { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] }
+}
+
+// Local calendar date as YYYY-MM-DD.
+export function todayStr(): string {
+  return new Date().toLocaleDateString('en-CA')
+}
+
+function totalKcal(meals: Record<MealName, LoggedFood[]>): number {
+  let t = 0
+  for (const m of MEAL_ORDER) for (const i of meals[m]) t += i.kcal * i.qty
+  return Math.round(t)
+}
+
+// When a new calendar day starts, archive the finished day's total into
+// history and clear the meals so the diary is fresh for today.
+function rolloverIfNeeded(s: AppState): AppState {
+  const today = todayStr()
+  if (s.currentDate === today) return s
+  const history = { ...(s.history || {}) }
+  const finished = totalKcal(s.meals)
+  if (s.currentDate && finished > 0) history[s.currentDate] = finished
+  return { ...s, currentDate: today, history, meals: emptyMeals() }
 }
 
 function seededMeals(): Record<MealName, LoggedFood[]> {
@@ -60,6 +83,9 @@ function freshDefault(): AppState {
     sheetOpen: false,
     sheetMeal: 'Lunch',
     hydrating: false,
+    currentDate: todayStr(),
+    history: {},
+    weighIns: [],
   }
 }
 
@@ -70,7 +96,8 @@ function localInitialState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const saved = JSON.parse(raw)
-      return { ...base, ...saved, sheetOpen: false, hydrating: false, screen: saved.onboarded ? 'today' : 'onboarding' }
+      const merged = { ...base, ...saved, sheetOpen: false, hydrating: false, screen: saved.onboarded ? 'today' : 'onboarding' }
+      return rolloverIfNeeded(merged)
     }
   } catch {
     /* ignore corrupt storage */
@@ -122,17 +149,25 @@ function reducer(state: AppState, action: Action): AppState {
     case 'FINISH_ONBOARDING':
       return { ...state, profile: action.profile, goal: action.goal, rate: action.rate, onboarded: true, screen: 'today' }
     case 'HYDRATE':
-      return {
+      return rolloverIfNeeded({
         ...state,
         ...action.state,
         sheetOpen: false,
         hydrating: false,
         screen: action.state.onboarded ? 'today' : 'onboarding',
-      }
+      })
     case 'SET_HYDRATING':
       return { ...state, hydrating: action.value }
     case 'SET_AVATAR':
       return { ...state, avatarUrl: action.url }
+    case 'LOG_WEIGHT': {
+      const date = todayStr()
+      const others = state.weighIns.filter((w) => w.date !== date)
+      return {
+        ...state,
+        weighIns: [...others, { date, kg: action.kg }].sort((a, b) => a.date.localeCompare(b.date)),
+      }
+    }
     case 'RESET':
       return freshDefault()
     default:

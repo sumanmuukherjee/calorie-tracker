@@ -26,6 +26,11 @@ export interface Profile {
   activity: number
 }
 
+export interface WeighIn {
+  date: string // YYYY-MM-DD
+  kg: number
+}
+
 export type Screen = 'onboarding' | 'today' | 'photo' | 'trends'
 
 export interface AppState {
@@ -40,4 +45,7 @@ export interface AppState {
   sheetMeal: MealName
   hydrating: boolean
   avatarUrl?: string
+  currentDate: string // YYYY-MM-DD the meals belong to
+  history: Record<string, number> // date -> total kcal eaten that day
+  weighIns: WeighIn[]
 }

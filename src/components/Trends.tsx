@@ -1,36 +1,35 @@
 import { useMemo, useState } from 'react'
+import { useStore, useTotals } from '../store'
 
-const WEIGHT_SERIES = Array.from({ length: 90 }, (_, i) => {
-  const t = i / 89
-  return 84 - 2.6 * t + 0.45 * Math.sin(i * 0.7) + 0.25 * Math.sin(i * 1.9)
-})
+const RANGES = [7, 30, 90]
 
-const RANGE_LABELS: Record<number, [string, string]> = {
-  7: ['Jun 17', 'Jun 23'],
-  30: ['May 24', 'Jun 23'],
-  90: ['Mar 25', 'Jun 23'],
+function lastNDates(n: number): string[] {
+  const out: string[] = []
+  const base = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(base)
+    d.setDate(base.getDate() - i)
+    out.push(d.toLocaleDateString('en-CA'))
+  }
+  return out
 }
 
-const WEEK = [2010, 1880, 1960, 2120, 1840, 1900, 1870]
-const GOAL = 1900
-
-function WeightChart({ range }: { range: number }) {
-  const slice = useMemo(() => WEIGHT_SERIES.slice(90 - range), [range])
+function WeightChart({ points }: { points: { date: string; kg: number }[] }) {
   const W = 320
   const H = 120
-  const pad = 8
-  const min = Math.min(...slice)
-  const max = Math.max(...slice)
+  const pad = 10
+  const kgs = points.map((p) => p.kg)
+  const min = Math.min(...kgs)
+  const max = Math.max(...kgs)
   const rng = max - min || 1
-  const pts = slice.map((v, i) => {
-    const x = pad + (W - 2 * pad) * (i / (slice.length - 1))
-    const y = pad + (H - 2 * pad) * (1 - (v - min) / rng)
+  const pts = points.map((p, i) => {
+    const x = pad + (W - 2 * pad) * (i / (points.length - 1))
+    const y = pad + (H - 2 * pad) * (1 - (p.kg - min) / rng)
     return [x, y] as const
   })
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
   const last = pts[pts.length - 1]
   const area = `${d} L${last[0].toFixed(1)} ${H} L${pad} ${H} Z`
-
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
       <path d={area} fill="var(--accent)" opacity={0.08} />
@@ -50,10 +49,45 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
 }
 
 export function Trends() {
+  const { state, dispatch } = useStore()
+  const { eaten, target, maintenance } = useTotals()
   const [range, setRange] = useState(30)
-  const slice = WEIGHT_SERIES.slice(90 - range)
-  const change = slice[slice.length - 1] - slice[0]
-  const max = 2300
+  const [wt, setWt] = useState('')
+
+  // Calories for any date: today comes from the live total, past days from history.
+  const kcalFor = (date: string) => (date === state.currentDate ? eaten : state.history[date] ?? 0)
+
+  const rangeDates = useMemo(() => lastNDates(range), [range])
+  const rangeSet = useMemo(() => new Set(rangeDates), [rangeDates])
+
+  const weightPoints = state.weighIns.filter((w) => rangeSet.has(w.date))
+  const latestWeight = state.weighIns.length ? state.weighIns[state.weighIns.length - 1].kg : state.profile.weightKg
+  const weightChange = weightPoints.length >= 2 ? weightPoints[weightPoints.length - 1].kg - weightPoints[0].kg : null
+
+  const week = useMemo(() => lastNDates(7), [])
+  const weekKcal = week.map(kcalFor)
+  const dayLetters = week.map((ds) => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(ds + 'T00:00:00').getDay()])
+  const maxBar = Math.max(target * 1.2, ...weekKcal, 1)
+
+  const intakeVals = rangeDates.map(kcalFor).filter((v) => v > 0)
+  const avgIntake = intakeVals.length ? Math.round(intakeVals.reduce((a, b) => a + b, 0) / intakeVals.length) : 0
+  const avgDeficit = avgIntake ? Math.round(maintenance - avgIntake) : 0
+
+  let streak = 0
+  for (let i = 0; i < 400; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    if (kcalFor(d.toLocaleDateString('en-CA')) > 0) streak++
+    else break
+  }
+
+  const logWeight = () => {
+    const kg = parseFloat(wt)
+    if (kg > 0 && kg < 600) {
+      dispatch({ type: 'LOG_WEIGHT', kg: Math.round(kg * 10) / 10 })
+      setWt('')
+    }
+  }
 
   return (
     <div className="fade-in screen-pad">
@@ -63,27 +97,48 @@ export function Trends() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-        <span className="muted" style={{ fontSize: 13 }}>Weight trend</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: change <= 0 ? 'var(--accent)' : 'var(--danger)' }}>
-          {change <= 0 ? '−' : '+'}
-          {Math.abs(change).toFixed(1)} kg
-        </span>
+        <span className="muted" style={{ fontSize: 13 }}>Weight</span>
+        {weightChange !== null && (
+          <span style={{ fontSize: 13, fontWeight: 600, color: weightChange <= 0 ? 'var(--accent)' : 'var(--danger)' }}>
+            {weightChange <= 0 ? '−' : '+'}
+            {Math.abs(weightChange).toFixed(1)} kg
+          </span>
+        )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
-        <span style={{ fontSize: 30, fontWeight: 600, lineHeight: 1 }}>{slice[slice.length - 1].toFixed(1)}</span>
-        <span className="muted" style={{ fontSize: 14 }}>kg</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+        <span style={{ fontSize: 30, fontWeight: 600, lineHeight: 1 }}>{latestWeight.toFixed(1)}</span>
+        <span className="muted" style={{ fontSize: 14 }}>kg{state.weighIns.length ? '' : ' · from profile'}</span>
       </div>
 
-      <div style={{ height: 120, marginBottom: 8 }}>
-        <WeightChart range={range} />
-      </div>
-      <div className="row-between tiny" style={{ color: 'var(--text-3)', marginBottom: 14 }}>
-        <span>{RANGE_LABELS[range][0]}</span>
-        <span>{RANGE_LABELS[range][1]}</span>
+      {weightPoints.length >= 2 ? (
+        <div style={{ height: 120, marginBottom: 14 }}>
+          <WeightChart points={weightPoints} />
+        </div>
+      ) : (
+        <div className="strip" style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 14, padding: 14 }}>
+          Log your weight regularly to see your trend here.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={wt}
+          onChange={(e) => setWt(e.target.value)}
+          placeholder="Today's weight (kg)"
+          style={{ flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '0.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)', outline: 'none' }}
+        />
+        <button
+          onClick={logWeight}
+          style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', padding: '0 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Log
+        </button>
       </div>
 
       <div className="seg" style={{ marginBottom: 18 }}>
-        {[7, 30, 90].map((n) => (
+        {RANGES.map((n) => (
           <button key={n} className={range === n ? 'on' : ''} onClick={() => setRange(n)}>
             {n} days
           </button>
@@ -94,28 +149,33 @@ export function Trends() {
         Calories · last 7 days
       </div>
       <div style={{ position: 'relative', height: 84, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 7, marginBottom: 6 }}>
-        {WEEK.map((v, i) => {
-          const ht = Math.round((v / max) * 72)
-          const over = v > GOAL
+        {weekKcal.map((v, i) => {
+          const ht = Math.round((v / maxBar) * 72)
+          const over = v > target
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ width: '100%', height: ht, background: over ? 'var(--danger)' : 'var(--accent)', borderRadius: '4px 4px 0 0', opacity: over ? 0.85 : 1 }} />
-              <span className="tiny" style={{ color: 'var(--text-3)' }}>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</span>
+              <div style={{ width: '100%', height: v > 0 ? Math.max(ht, 2) : 0, background: over ? 'var(--danger)' : 'var(--accent)', borderRadius: '4px 4px 0 0', opacity: over ? 0.85 : 1 }} />
+              <span className="tiny" style={{ color: 'var(--text-3)' }}>{dayLetters[i]}</span>
             </div>
           )
         })}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: Math.round((1 - GOAL / max) * 72), borderTop: '1.5px dashed var(--text-3)' }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, top: Math.round((1 - target / maxBar) * 72), borderTop: '1.5px dashed var(--text-3)' }} />
       </div>
       <div className="tiny" style={{ color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
         <span style={{ width: 14, height: 2, background: 'var(--text-3)', display: 'inline-block', borderRadius: 2 }} />
-        Goal {GOAL.toLocaleString()} · avg 1,940/day
+        Goal {target.toLocaleString()}
+        {avgIntake ? ` · avg ${avgIntake.toLocaleString()}/day` : ''}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-        <Stat label="Avg intake" value="1,940" />
-        <Stat label="Weight change" value="−2.4 kg" color="var(--accent)" />
-        <Stat label="Avg deficit" value="−480" />
-        <Stat label="Logging streak" value="12 days" color="var(--warn)" />
+        <Stat label="Avg intake" value={avgIntake ? avgIntake.toLocaleString() : '—'} />
+        <Stat
+          label="Weight change"
+          value={weightChange !== null ? `${weightChange <= 0 ? '−' : '+'}${Math.abs(weightChange).toFixed(1)} kg` : '—'}
+          color={weightChange !== null && weightChange <= 0 ? 'var(--accent)' : undefined}
+        />
+        <Stat label="Avg deficit" value={avgIntake ? (avgDeficit >= 0 ? `−${avgDeficit}` : `+${-avgDeficit}`) : '—'} />
+        <Stat label="Logging streak" value={`${streak} day${streak === 1 ? '' : 's'}`} color="var(--warn)" />
       </div>
     </div>
   )
