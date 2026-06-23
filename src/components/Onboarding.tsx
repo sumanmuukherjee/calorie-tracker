@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import { dailyTarget, macroTargets, tdee } from '../lib/nutrition'
 import type { Goal } from '../types'
 
@@ -11,6 +12,7 @@ const GOALS: { key: Goal; label: string }[] = [
 
 export function Onboarding() {
   const { state, dispatch } = useStore()
+  const { isCloud, user, signOut } = useAuth()
   const [goal, setGoal] = useState<Goal>(state.goal)
   const [rate, setRate] = useState(state.rate)
 
@@ -95,6 +97,23 @@ export function Onboarding() {
       <button className="primary" onClick={() => dispatch({ type: 'FINISH_ONBOARDING', profile: state.profile, goal, rate })}>
         {state.onboarded ? 'Save goal' : 'Start tracking'}
       </button>
+
+      {isCloud && user && (
+        <div
+          className="row-between"
+          style={{ marginTop: 18, paddingTop: 14, borderTop: '0.5px solid var(--border)' }}
+        >
+          <span className="tiny muted" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Signed in as {user.email}
+          </span>
+          <button
+            onClick={() => signOut()}
+            style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 13, cursor: 'pointer', flexShrink: 0 }}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   )
 }

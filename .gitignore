@@ -7,6 +7,9 @@ dist-ssr
 
 # local env / editor
 *.local
+.env
+.env.*
+!.env.example
 .DS_Store
 .vite
 .claude/

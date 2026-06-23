@@ -38,4 +38,5 @@ export interface AppState {
   meals: Record<MealName, LoggedFood[]>
   sheetOpen: boolean
   sheetMeal: MealName
+  hydrating: boolean
 }
