@@ -39,7 +39,7 @@ export async function searchFoods(query: string): Promise<Food[]> {
     query,
     pageSize: '25',
     api_key: API_KEY,
-    dataType: 'Foundation,SR Legacy,Survey (FNDDS),Branded',
+    dataType: 'Foundation,SR Legacy,Branded',
   })
   try {
     const res = await fetch(`${ENDPOINT}?${params.toString()}`)
