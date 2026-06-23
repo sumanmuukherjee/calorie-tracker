@@ -6,7 +6,7 @@ import { passwordError, usernameError } from '../lib/validate'
 type Mode = 'in' | 'up' | 'forgot'
 
 export function Auth() {
-  const { signIn, signUp, resetPassword } = useAuth()
+  const { signIn, signUp, resetPassword, checkUsername } = useAuth()
   const [mode, setMode] = useState<Mode>('in')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -45,6 +45,13 @@ export function Auth() {
     if (pe) return setError(pe)
 
     setBusy(true)
+    if (mode === 'up') {
+      const available = await checkUsername(username.trim())
+      if (!available) {
+        setBusy(false)
+        return setError('That username is already taken.')
+      }
+    }
     const res = mode === 'in' ? await signIn(email, password) : await signUp(email, password, username.trim())
     setBusy(false)
     if (res.error) return setError(res.error)

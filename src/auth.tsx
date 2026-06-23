@@ -19,6 +19,7 @@ interface AuthValue {
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<AuthResult>
   updatePassword: (password: string) => Promise<AuthResult>
+  checkUsername: (name: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -82,6 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.updateUser({ password })
       if (!error) setRecovery(false)
       return { error: error?.message }
+    },
+    checkUsername: async (name) => {
+      if (!supabase) return true
+      const { data, error } = await supabase.rpc('username_available', { name })
+      // Fail open on error — the DB unique index is the real backstop.
+      if (error) return true
+      return data === true
     },
   }
 
