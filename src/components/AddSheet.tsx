@@ -1,19 +1,53 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { FOODS } from '../data/foods'
+import { searchFoods } from '../lib/foodSearch'
 import { MEAL_ORDER } from '../types'
-import type { MealName } from '../types'
+import type { Food, MealName } from '../types'
 
 export function AddSheet() {
   const { state, dispatch } = useStore()
   const [query, setQuery] = useState('')
   const [note, setNote] = useState('')
+  const [remote, setRemote] = useState<Food[]>([])
+  const [searching, setSearching] = useState(false)
 
-  const results = useMemo(() => {
+  const local = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return FOODS
     return FOODS.filter((f) => f.name.toLowerCase().includes(q))
   }, [query])
+
+  // Debounced live search against Open Food Facts.
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 2) {
+      setRemote([])
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    const timer = window.setTimeout(async () => {
+      const found = await searchFoods(q)
+      setRemote(found)
+      setSearching(false)
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const results = useMemo(() => {
+    if (!query.trim()) return FOODS
+    const seen = new Set(local.map((f) => f.name.toLowerCase()))
+    const merged: Food[] = [...local]
+    for (const f of remote) {
+      const key = f.name.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(f)
+      }
+    }
+    return merged
+  }, [query, local, remote])
 
   const setMeal = (meal: MealName) => dispatch({ type: 'OPEN_SHEET', meal })
   const close = () => dispatch({ type: 'CLOSE_SHEET' })
@@ -22,6 +56,9 @@ export function AddSheet() {
     setNote(msg)
     window.setTimeout(() => setNote(''), 1600)
   }
+
+  const isSearch = query.trim().length > 0
+  const label = note || (isSearch ? 'Results' : 'Recent & frequent')
 
   return (
     <>
@@ -58,6 +95,9 @@ export function AddSheet() {
               outline: 'none',
             }}
           />
+          {searching && (
+            <i className="ti ti-loader-2" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: 'var(--text-3)', animation: 'spin 0.9s linear infinite' }} aria-hidden="true" />
+          )}
         </div>
 
         <div className="chip-grid" style={{ marginBottom: 14 }}>
@@ -80,13 +120,13 @@ export function AddSheet() {
         </div>
 
         <div className="eyebrow" style={{ marginBottom: 4 }}>
-          {note || 'Recent & frequent'}
+          {label}
         </div>
 
         <div>
           {results.length === 0 ? (
             <div className="muted" style={{ fontSize: 13, padding: '14px 4px' }}>
-              No matches — tap “Custom” to create it.
+              {searching ? 'Searching…' : 'No matches — tap “Custom” to create it.'}
             </div>
           ) : (
             results.map((food) => (
