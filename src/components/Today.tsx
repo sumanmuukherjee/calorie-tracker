@@ -1,4 +1,5 @@
 import { useStore, useTotals } from '../store'
+import { useAuth } from '../auth'
 import { MEAL_ORDER } from '../types'
 import type { MealName } from '../types'
 import { CalorieRing } from './CalorieRing'
@@ -13,6 +14,7 @@ const MEAL_ICONS: Record<MealName, string> = {
 
 export function Today() {
   const { state, dispatch } = useStore()
+  const { isCloud, signOut } = useAuth()
   const totals = useTotals()
 
   return (
@@ -24,10 +26,21 @@ export function Today() {
             <span style={{ fontSize: 16, fontWeight: 600 }}>Today</span>
             <i className="ti ti-chevron-right" style={{ fontSize: 20, color: 'var(--text-3)' }} aria-hidden="true" />
           </div>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--warn)', fontWeight: 600, fontSize: 14 }}>
-            <i className="ti ti-flame" style={{ fontSize: 18 }} aria-hidden="true" />
-            12
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--warn)', fontWeight: 600, fontSize: 14 }}>
+              <i className="ti ti-flame" style={{ fontSize: 18 }} aria-hidden="true" />
+              12
+            </span>
+            {isCloud && (
+              <i
+                className="ti ti-logout"
+                role="button"
+                aria-label="Sign out"
+                onClick={() => signOut()}
+                style={{ fontSize: 19, color: 'var(--text-3)', cursor: 'pointer' }}
+              />
+            )}
+          </div>
         </div>
 
         <CalorieRing target={totals.target} exercise={state.exercise} eaten={totals.eaten} remaining={totals.remaining} />

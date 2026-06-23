@@ -34,7 +34,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      // Validate the cached session against the server. If the user was
+      // deleted or the token can't be refreshed, sign out and show login
+      // instead of trapping the app on a stale/invalid session.
+      if (data.session) {
+        const { error } = await supabase!.auth.getUser()
+        if (error) {
+          await supabase!.auth.signOut()
+          setSession(null)
+          setLoading(false)
+          return
+        }
+      }
       setSession(data.session)
       setLoading(false)
     })
