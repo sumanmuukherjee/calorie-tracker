@@ -7,6 +7,7 @@ import { PhotoLog } from './components/PhotoLog'
 import { AddSheet } from './components/AddSheet'
 import { BottomNav } from './components/BottomNav'
 import { Auth } from './components/Auth'
+import { UpdatePassword } from './components/UpdatePassword'
 
 function Splash({ label }: { label: string }) {
   return (
@@ -32,10 +33,11 @@ function Splash({ label }: { label: string }) {
 }
 
 export function App() {
-  const { isCloud, loading, session } = useAuth()
+  const { isCloud, loading, session, recovery } = useAuth()
   const { state } = useStore()
 
   if (loading) return <Splash label="Starting up…" />
+  if (isCloud && recovery) return <UpdatePassword />
   if (isCloud && !session) return <Auth />
   if (isCloud && state.hydrating) return <Splash label="Loading your diary…" />
 

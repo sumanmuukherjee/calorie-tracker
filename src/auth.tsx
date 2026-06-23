@@ -13,9 +13,12 @@ interface AuthValue {
   loading: boolean
   session: Session | null
   user: User | null
+  recovery: boolean
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<AuthResult>
+  updatePassword: (password: string) => Promise<AuthResult>
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -23,6 +26,7 @@ const AuthContext = createContext<AuthValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(isCloud)
+  const [recovery, setRecovery] = useState(false)
 
   useEffect(() => {
     if (!supabase) {
@@ -33,7 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setLoading(false)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
+    // 'PASSWORD_RECOVERY' fires when the user arrives via a reset-email link.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      setSession(next)
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
@@ -42,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     session,
     user: session?.user ?? null,
+    recovery,
     signIn: async (email, password) => {
       if (!supabase) return {}
       const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -51,11 +60,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) return {}
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) return { error: error.message }
-      // If email confirmation is on, no session is returned until the user confirms.
       return { needsConfirm: !data.session }
     },
     signOut: async () => {
       if (supabase) await supabase.auth.signOut()
+    },
+    resetPassword: async (email) => {
+      if (!supabase) return {}
+      // Supabase emails a one-time link that returns the user to this app.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      })
+      return { error: error?.message }
+    },
+    updatePassword: async (password) => {
+      if (!supabase) return {}
+      const { error } = await supabase.auth.updateUser({ password })
+      if (!error) setRecovery(false)
+      return { error: error?.message }
     },
   }
 
