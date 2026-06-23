@@ -15,7 +15,7 @@ function Field({ label, value, min, max, onChange }: { label: string; value: num
   const [text, setText] = useState(() => String(value))
   return (
     <div>
-      <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      {label ? <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>{label}</label> : null}
       <input
         type="text"
         inputMode="decimal"
@@ -40,6 +40,31 @@ export function Onboarding() {
   const [rate, setRate] = useState(state.rate)
   const [profile, setProfile] = useState<Profile>(state.profile)
   const setP = (patch: Partial<Profile>) => setProfile((p) => ({ ...p, ...patch }))
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>(() => {
+    try {
+      return (localStorage.getItem('nourish.heightUnit') as 'cm' | 'ft') || 'cm'
+    } catch {
+      return 'cm'
+    }
+  })
+  const chooseUnit = (u: 'cm' | 'ft') => {
+    setHeightUnit(u)
+    try {
+      localStorage.setItem('nourish.heightUnit', u)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // ft/in derived from the canonical heightCm
+  const totalInches = profile.heightCm / 2.54
+  let ftVal = Math.floor(totalInches / 12)
+  let inVal = Math.round(totalInches - ftVal * 12)
+  if (inVal === 12) {
+    ftVal += 1
+    inVal = 0
+  }
+  const setHeightFtIn = (ft: number, inch: number) => setP({ heightCm: Math.round((ft * 12 + inch) * 2.54) })
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState('')
@@ -150,10 +175,35 @@ export function Onboarding() {
             </button>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 12 }}>
           <Field label="Age" value={profile.age} min={13} max={100} onChange={(v) => setP({ age: v })} />
-          <Field label="Height (cm)" value={profile.heightCm} min={120} max={230} onChange={(v) => setP({ heightCm: v })} />
           <Field label="Weight (kg)" value={profile.weightKg} min={30} max={350} onChange={(v) => setP({ weightKg: v })} />
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div className="row-between" style={{ marginBottom: 4 }}>
+            <label className="tiny" style={{ color: 'var(--text-3)' }}>Height</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['cm', 'ft'] as const).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => chooseUnit(u)}
+                  style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '0.5px solid var(--border)', background: heightUnit === u ? 'var(--accent)' : 'transparent', color: heightUnit === u ? '#fff' : 'var(--text-3)', cursor: 'pointer' }}
+                >
+                  {u === 'cm' ? 'cm' : 'ft / in'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {heightUnit === 'cm' ? (
+            <Field label="" value={profile.heightCm} min={120} max={230} onChange={(v) => setP({ heightCm: v })} />
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+              <Field label="Feet" value={ftVal} min={3} max={8} onChange={(v) => setHeightFtIn(v, inVal)} />
+              <Field label="Inches" value={inVal} min={0} max={11} onChange={(v) => setHeightFtIn(ftVal, v)} />
+            </div>
+          )}
         </div>
         <div className="eyebrow" style={{ marginBottom: 6 }}>Activity</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
