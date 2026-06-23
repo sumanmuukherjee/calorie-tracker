@@ -1,0 +1,14 @@
+name: calorie-tracker
+region: nyc
+features:
+  - buildpack-stack=ubuntu-22
+static_sites:
+  - name: web
+    github:
+      repo: sumanmuukherjie/calorie-tracker
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    output_dir: dist
+    catchall_document: index.html
+    environment_slug: node-js
