@@ -58,7 +58,10 @@ export function App() {
   if (isCloud && !session) return <Welcome />
   if (isCloud && state.hydrating) return <Splash label="Loading your diary…" />
 
-  const showChrome = state.screen !== 'onboarding'
+  // Keep the bottom nav (incl. the Today/home button) on every screen except
+  // genuine first-time onboarding, so an onboarded user editing their Goal can
+  // always get back to their dashboard in one tap.
+  const showChrome = state.screen !== 'onboarding' || state.onboarded
 
   return (
     <div className="app">
