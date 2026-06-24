@@ -1,7 +1,7 @@
 import { useStore, useTotals } from '../store'
 import { useAuth } from '../auth'
 import { MEAL_ORDER } from '../types'
-import type { MealName } from '../types'
+import type { LoggedFood, MealName } from '../types'
 import { CalorieRing } from './CalorieRing'
 import { MacroBars } from './MacroBars'
 
@@ -10,6 +10,16 @@ const MEAL_ICONS: Record<MealName, string> = {
   Lunch: 'ti-salad',
   Dinner: 'ti-meat',
   Snacks: 'ti-apple',
+}
+
+function amountLabel(item: LoggedFood): string {
+  if (item.portion === 'per 100 g') return `${Math.round(item.qty * 100)} g`
+  return item.qty === 1 ? item.portion : `${item.qty} × ${item.portion}`
+}
+
+function timeLabel(ts?: number): string {
+  if (!ts) return ''
+  return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 export function Today() {
@@ -112,12 +122,10 @@ export function Today() {
                   style={{ padding: '7px 2px', borderTop: '0.5px solid var(--border)' }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13 }}>
-                      {item.name}
-                      {item.qty !== 1 ? <span className="muted"> ×{item.qty}</span> : null}
-                    </div>
+                    <div style={{ fontSize: 13 }}>{item.name}</div>
                     <div className="tiny" style={{ color: 'var(--text-3)' }}>
-                      {item.portion}
+                      {amountLabel(item)}
+                      {item.loggedAt ? ` · ${timeLabel(item.loggedAt)}` : ''}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>

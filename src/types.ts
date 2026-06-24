@@ -16,6 +16,7 @@ export interface Food {
 export interface LoggedFood extends Food {
   uid: string
   qty: number
+  loggedAt?: number // epoch ms when this item was logged
 }
 
 export interface Profile {

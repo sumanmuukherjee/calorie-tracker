@@ -117,7 +117,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         meals: {
           ...state.meals,
-          [action.meal]: [...state.meals[action.meal], { ...action.food, uid: uid(), qty: action.qty ?? 1 }],
+          [action.meal]: [...state.meals[action.meal], { ...action.food, uid: uid(), qty: action.qty ?? 1, loggedAt: Date.now() }],
         },
       }
     case 'ADD_MANY':
@@ -127,7 +127,7 @@ function reducer(state: AppState, action: Action): AppState {
           ...state.meals,
           [action.meal]: [
             ...state.meals[action.meal],
-            ...action.foods.map(({ food, qty }) => ({ ...food, uid: uid(), qty })),
+            ...action.foods.map(({ food, qty }) => ({ ...food, uid: uid(), qty, loggedAt: Date.now() })),
           ],
         },
       }
