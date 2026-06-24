@@ -1,0 +1,19 @@
+{
+  "name": "nourish-health-write",
+  "version": "0.0.1",
+  "description": "Capacitor plugin: write nutrition (energy + macros + water) to Apple Health / Android Health Connect.",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=6.0.0"
+  },
+  "capacitor": {
+    "ios": { "src": "ios" },
+    "android": { "src": "android" }
+  },
+  "_note": "Scaffold. Generate the full plugin shell with `npm init @capacitor/plugin@latest` and drop src/ + ios/ + android/ in, or wire as a local module. See native/README.md."
+}
