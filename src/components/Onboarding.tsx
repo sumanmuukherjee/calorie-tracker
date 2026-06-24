@@ -1,9 +1,10 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { uploadAvatar } from '../lib/avatar'
 import { AvatarCropper } from './AvatarCropper'
 import { ACTIVITY_LEVELS, dailyTarget, macroTargets, tdee } from '../lib/nutrition'
+import { fromKg, getWeightUnit, setWeightUnitPref, toKg, type WeightUnit } from '../lib/units'
 import type { Goal, Profile } from '../types'
 
 const GOALS: { key: Goal; label: string }[] = [
@@ -56,6 +57,16 @@ export function Onboarding() {
       /* ignore */
     }
   }
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(getWeightUnit)
+  const chooseWeightUnit = (u: WeightUnit) => {
+    setWeightUnit(u)
+    setWeightUnitPref(u)
+  }
+
+  // Manual vs computed daily calorie target.
+  const [targetMode, setTargetMode] = useState<'recommended' | 'custom'>(state.customTarget != null ? 'custom' : 'recommended')
+  const [customTargetNum, setCustomTargetNum] = useState<number>(() => state.customTarget ?? dailyTarget(tdee(state.profile), state.goal, state.rate))
+  const [customTouched, setCustomTouched] = useState(state.customTarget != null)
 
   // ft/in derived from the canonical heightCm
   const totalInches = profile.heightCm / 2.54
@@ -101,9 +112,17 @@ export function Onboarding() {
   }
 
   const maintenance = tdee(profile)
-  const target = dailyTarget(maintenance, goal, rate)
+  const recommended = dailyTarget(maintenance, goal, rate)
+  const target = targetMode === 'custom' ? customTargetNum : recommended
   const macros = macroTargets(target, profile.weightKg, goal)
-  const adjustment = Math.abs(target - maintenance)
+  const adjustment = Math.abs(recommended - maintenance)
+
+  // Mirror the custom prefill to the live recommended value until the user
+  // explicitly edits it, so opening Custom never shows a stale number that
+  // disagrees with the recommendation just computed from their inputs.
+  useEffect(() => {
+    if (targetMode === 'recommended' && !customTouched) setCustomTargetNum(recommended)
+  }, [recommended, targetMode, customTouched])
 
   return (
     <div className="fade-in screen-pad" style={{ paddingTop: 18 }}>
@@ -194,7 +213,31 @@ export function Onboarding() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 12 }}>
           <Field label="Age" value={profile.age} min={13} max={100} onChange={(v) => setP({ age: v })} />
-          <Field label="Weight (kg)" value={profile.weightKg} min={30} max={350} onChange={(v) => setP({ weightKg: v })} />
+          <div>
+            <div className="row-between" style={{ marginBottom: 4 }}>
+              <label className="tiny" style={{ color: 'var(--text-3)' }}>Weight</label>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['kg', 'lbs'] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => chooseWeightUnit(u)}
+                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, border: '0.5px solid var(--border)', background: weightUnit === u ? 'var(--accent)' : 'transparent', color: weightUnit === u ? '#fff' : 'var(--text-3)', cursor: 'pointer' }}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Field
+              key={weightUnit}
+              label=""
+              value={fromKg(profile.weightKg, weightUnit, 0)}
+              min={weightUnit === 'kg' ? 30 : 66}
+              max={weightUnit === 'kg' ? 350 : 770}
+              onChange={(v) => setP({ weightKg: toKg(v, weightUnit) })}
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: 12 }}>
@@ -259,7 +302,23 @@ export function Onboarding() {
         ))}
       </div>
 
-      {goal !== 'maintain' && (
+      <div className="row-between" style={{ marginBottom: 10 }}>
+        <span className="eyebrow">Daily target</span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['recommended', 'custom'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setTargetMode(m)}
+              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '0.5px solid var(--border)', background: targetMode === m ? 'var(--accent)' : 'transparent', color: targetMode === m ? '#fff' : 'var(--text-3)', cursor: 'pointer', textTransform: 'capitalize' }}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {targetMode === 'recommended' && goal !== 'maintain' && (
         <div style={{ marginBottom: 18 }}>
           <div className="row-between" style={{ marginBottom: 8 }}>
             <span className="eyebrow">Weekly pace</span>
@@ -269,6 +328,24 @@ export function Onboarding() {
           <div className="tiny" style={{ color: 'var(--text-2)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
             <i className="ti ti-flame" style={{ fontSize: 13 }} aria-hidden="true" />
             about {adjustment.toLocaleString()} kcal/day {goal === 'lose' ? 'below' : 'above'} maintenance
+          </div>
+        </div>
+      )}
+
+      {targetMode === 'custom' && (
+        <div style={{ marginBottom: 18 }}>
+          <Field
+            label="Target calories (kcal)"
+            value={customTargetNum}
+            min={1000}
+            max={8000}
+            onChange={(v) => {
+              setCustomTouched(true)
+              setCustomTargetNum(v)
+            }}
+          />
+          <div className="tiny" style={{ color: 'var(--text-2)', marginTop: 6 }}>
+            Recommended for you: {recommended.toLocaleString()} kcal/day
           </div>
         </div>
       )}
@@ -285,7 +362,7 @@ export function Onboarding() {
         </div>
       </div>
 
-      <button className="primary" onClick={() => dispatch({ type: 'FINISH_ONBOARDING', profile, goal, rate })}>
+      <button className="primary" onClick={() => dispatch({ type: 'FINISH_ONBOARDING', profile, goal, rate, customTarget: targetMode === 'custom' ? customTargetNum : null })}>
         {state.onboarded ? 'Save goal' : 'Start tracking'}
       </button>
 

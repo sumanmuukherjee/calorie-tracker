@@ -17,7 +17,8 @@ type Action =
   | { type: 'SET_SCREEN'; screen: Screen }
   | { type: 'SET_GOAL'; goal: Goal }
   | { type: 'SET_RATE'; rate: number }
-  | { type: 'FINISH_ONBOARDING'; profile: Profile; goal: Goal; rate: number }
+  | { type: 'SET_CUSTOM_TARGET'; value: number | null }
+  | { type: 'FINISH_ONBOARDING'; profile: Profile; goal: Goal; rate: number; customTarget: number | null }
   | { type: 'HYDRATE'; state: PersistedState }
   | { type: 'SET_HYDRATING'; value: boolean }
   | { type: 'SET_AVATAR'; url: string }
@@ -78,6 +79,7 @@ function freshDefault(): AppState {
     profile: defaultProfile,
     goal: 'lose',
     rate: 0.5,
+    customTarget: null,
     exercise: 320,
     meals: emptyMeals(),
     sheetOpen: false,
@@ -146,8 +148,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, goal: action.goal }
     case 'SET_RATE':
       return { ...state, rate: action.rate }
+    case 'SET_CUSTOM_TARGET':
+      return { ...state, customTarget: action.value }
     case 'FINISH_ONBOARDING':
-      return { ...state, profile: action.profile, goal: action.goal, rate: action.rate, onboarded: true, screen: 'today' }
+      return { ...state, profile: action.profile, goal: action.goal, rate: action.rate, customTarget: action.customTarget, onboarded: true, screen: 'today' }
     case 'HYDRATE':
       return rolloverIfNeeded({
         ...state,
@@ -248,7 +252,8 @@ export interface DerivedTotals {
 export function useTotals(): DerivedTotals {
   const { state } = useStore()
   const maintenance = tdee(state.profile)
-  const target = dailyTarget(maintenance, state.goal, state.rate)
+  const recommended = dailyTarget(maintenance, state.goal, state.rate)
+  const target = state.customTarget != null ? state.customTarget : recommended
   const macroGoals = macroTargets(target, state.profile.weightKg, state.goal)
 
   let eaten = 0

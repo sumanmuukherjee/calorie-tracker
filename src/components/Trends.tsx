@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore, useTotals } from '../store'
+import { fromKg, getWeightUnit, toKg } from '../lib/units'
 
 const RANGES = [7, 30, 90]
 
@@ -53,6 +54,7 @@ export function Trends() {
   const { eaten, target, maintenance } = useTotals()
   const [range, setRange] = useState(30)
   const [wt, setWt] = useState('')
+  const [unit] = useState(getWeightUnit)
 
   // Calories for any date: today comes from the live total, past days from history.
   const kcalFor = (date: string) => (date === state.currentDate ? eaten : state.history[date] ?? 0)
@@ -82,7 +84,9 @@ export function Trends() {
   }
 
   const logWeight = () => {
-    const kg = parseFloat(wt)
+    const entered = parseFloat(wt)
+    if (!(entered > 0)) return
+    const kg = toKg(entered, unit)
     if (kg > 0 && kg < 600) {
       dispatch({ type: 'LOG_WEIGHT', kg: Math.round(kg * 10) / 10 })
       setWt('')
@@ -101,13 +105,13 @@ export function Trends() {
         {weightChange !== null && (
           <span style={{ fontSize: 13, fontWeight: 600, color: weightChange <= 0 ? 'var(--accent)' : 'var(--danger)' }}>
             {weightChange <= 0 ? '−' : '+'}
-            {Math.abs(weightChange).toFixed(1)} kg
+            {fromKg(Math.abs(weightChange), unit, 1)} {unit}
           </span>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-        <span style={{ fontSize: 30, fontWeight: 600, lineHeight: 1 }}>{latestWeight.toFixed(1)}</span>
-        <span className="muted" style={{ fontSize: 14 }}>kg{state.weighIns.length ? '' : ' · from profile'}</span>
+        <span style={{ fontSize: 30, fontWeight: 600, lineHeight: 1 }}>{fromKg(latestWeight, unit, 1)}</span>
+        <span className="muted" style={{ fontSize: 14 }}>{unit}{state.weighIns.length ? '' : ' · from profile'}</span>
       </div>
 
       {weightPoints.length >= 2 ? (
@@ -126,7 +130,7 @@ export function Trends() {
           inputMode="decimal"
           value={wt}
           onChange={(e) => setWt(e.target.value)}
-          placeholder="Today's weight (kg)"
+          placeholder={`Today's weight (${unit})`}
           style={{ flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '0.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)', outline: 'none' }}
         />
         <button
@@ -171,7 +175,7 @@ export function Trends() {
         <Stat label="Avg intake" value={avgIntake ? avgIntake.toLocaleString() : '—'} />
         <Stat
           label="Weight change"
-          value={weightChange !== null ? `${weightChange <= 0 ? '−' : '+'}${Math.abs(weightChange).toFixed(1)} kg` : '—'}
+          value={weightChange !== null ? `${weightChange <= 0 ? '−' : '+'}${fromKg(Math.abs(weightChange), unit, 1)} ${unit}` : '—'}
           color={weightChange !== null && weightChange <= 0 ? 'var(--accent)' : undefined}
         />
         <Stat label="Avg deficit" value={avgIntake ? (avgDeficit >= 0 ? `−${avgDeficit}` : `+${-avgDeficit}`) : '—'} />

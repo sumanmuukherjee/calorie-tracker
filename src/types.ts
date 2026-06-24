@@ -40,6 +40,7 @@ export interface AppState {
   profile: Profile
   goal: Goal
   rate: number
+  customTarget: number | null // manual daily calorie target; null = use computed
   exercise: number
   meals: Record<MealName, LoggedFood[]>
   sheetOpen: boolean
