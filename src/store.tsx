@@ -310,8 +310,9 @@ export interface DerivedTotals {
 
 export function useTotals(): DerivedTotals {
   const { state } = useStore()
-  const adaptive = state.adaptiveTdee ? adaptiveMaintenance(state.weighIns, state.history) : null
-  const maintenance = adaptive ?? tdee(state.profile)
+  const mifflin = tdee(state.profile)
+  const adaptive = state.adaptiveTdee ? adaptiveMaintenance(state.weighIns, state.history, mifflin) : null
+  const maintenance = adaptive ?? mifflin
   const recommended = dailyTarget(maintenance, state.goal, state.rate)
   const target = state.customTarget != null ? state.customTarget : recommended
   const macroGoals = macroTargets(target, state.profile.weightKg, state.goal)

@@ -112,7 +112,7 @@ export function Onboarding() {
   }
 
   const mifflin = tdee(profile)
-  const adaptiveEst = adaptiveMaintenance(state.weighIns, state.history)
+  const adaptiveEst = adaptiveMaintenance(state.weighIns, state.history, mifflin)
   const useAdaptive = state.adaptiveTdee && adaptiveEst != null
   const maintenance = useAdaptive ? (adaptiveEst as number) : mifflin
   const recommended = dailyTarget(maintenance, goal, rate)

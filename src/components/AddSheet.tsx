@@ -259,7 +259,7 @@ export function AddSheet() {
   }, [query])
 
   const results = useMemo(() => {
-    if (!query.trim()) return FOODS
+    if (!query.trim()) return local // include the user's custom foods in the default browse list
     const seen = new Set(local.map((f) => f.name.toLowerCase()))
     const merged: Food[] = [...local]
     for (const f of remote) {

@@ -32,17 +32,35 @@ export function targetFloorApplied(maintenance: number, goal: Goal, rateKgPerWee
   return goal === 'lose' && rawTarget(maintenance, goal, rateKgPerWeek) < CALORIE_FLOOR
 }
 
-// F12 — estimate real maintenance from energy balance: over the span between
-// the first and last weigh-in, weight change reflects (intake − maintenance).
-// So maintenance = avgIntake + (weightLost × 7700) / days. Returns null until
-// there's enough data (>=2 weigh-ins >=7 days apart and enough logged days).
-export function adaptiveMaintenance(weighIns: WeighIn[], history: Record<string, number>): number | null {
-  if (weighIns.length < 2) return null
+// F12 — estimate real maintenance from energy balance. Over the window between
+// the first and last weigh-in, the weight TREND reflects (intake − maintenance):
+// maintenance = avgIntake − slopeKgPerDay × 7700.
+//
+// The slope is a least-squares fit over ALL weigh-ins in the window (not just
+// the two endpoints) so a single noisy scale reading can't dominate; the result
+// is discarded unless it's plausible and within ~40% of the profile estimate,
+// since day-to-day water-weight swings of 1–2 kg are routine. Needs >=3 weigh-ins
+// >=14 days apart and enough logged days, else returns null (fall back to Mifflin).
+export function adaptiveMaintenance(weighIns: WeighIn[], history: Record<string, number>, mifflin: number): number | null {
+  if (weighIns.length < 3) return null
   const sorted = [...weighIns].sort((a, b) => a.date.localeCompare(b.date))
   const first = sorted[0]
   const last = sorted[sorted.length - 1]
-  const days = Math.round((new Date(last.date + 'T00:00:00').getTime() - new Date(first.date + 'T00:00:00').getTime()) / 86_400_000)
-  if (days < 7) return null
+  const t0 = new Date(first.date + 'T00:00:00').getTime()
+  const days = Math.round((new Date(last.date + 'T00:00:00').getTime() - t0) / 86_400_000)
+  if (days < 14) return null
+
+  // least-squares slope (kg/day) over every weigh-in in the window
+  const pts = sorted.map((w) => ({ x: (new Date(w.date + 'T00:00:00').getTime() - t0) / 86_400_000, y: w.kg }))
+  const N = pts.length
+  const sx = pts.reduce((a, p) => a + p.x, 0)
+  const sy = pts.reduce((a, p) => a + p.y, 0)
+  const sxx = pts.reduce((a, p) => a + p.x * p.x, 0)
+  const sxy = pts.reduce((a, p) => a + p.x * p.y, 0)
+  const denom = N * sxx - sx * sx
+  if (denom === 0) return null
+  const slope = (N * sxy - sx * sy) / denom // kg/day, negative while losing
+
   let sum = 0
   let n = 0
   for (const date in history) {
@@ -51,11 +69,12 @@ export function adaptiveMaintenance(weighIns: WeighIn[], history: Record<string,
       n++
     }
   }
-  if (n < Math.max(5, Math.round(days * 0.4))) return null
+  if (n < Math.max(7, Math.round(days * 0.4))) return null
   const avgIntake = sum / n
-  const lostKg = first.kg - last.kg
-  const maintenance = avgIntake + (lostKg * KCAL_PER_KG) / days
-  if (maintenance < 800 || maintenance > 6000) return null // discard implausible estimates
+
+  const maintenance = avgIntake - slope * KCAL_PER_KG
+  if (maintenance < 800 || maintenance > 6000) return null
+  if (mifflin > 0 && Math.abs(maintenance - mifflin) / mifflin > 0.4) return null // reject noise-driven outliers
   return Math.round(maintenance / 10) * 10
 }
 
