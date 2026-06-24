@@ -90,6 +90,22 @@ input {
 
 .muted { color: var(--text-2); }
 .tiny { font-size: 11px; }
+
+/* A2 — visually-hidden text that screen readers still announce */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* F11 — desktop shows the phone column as a deliberate framed app, not a bare
+   strip in empty gutters. The phone layout (<1024px) is untouched. */
+@media (min-width: 1024px) {
+  .app {
+    border-left: 0.5px solid var(--border);
+    border-right: 0.5px solid var(--border);
+    box-shadow: 0 0 90px -28px rgba(58, 29, 143, 0.28);
+  }
+}
 .eyebrow { font-size: 11px; letter-spacing: 0.4px; color: var(--text-3); text-transform: uppercase; }
 
 .card {

@@ -90,7 +90,7 @@ export function Trends() {
   return (
     <div className="fade-in screen-pad">
       <div className="row-between" style={{ marginBottom: 14 }}>
-        <span className="h-title">Progress</span>
+        <h1 className="h-title" style={{ margin: 0 }}>Progress</h1>
         <i className="ti ti-share" style={{ fontSize: 19, color: 'var(--text-3)' }} aria-label="Share" />
       </div>
 

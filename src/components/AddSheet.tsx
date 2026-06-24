@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { FOODS } from '../data/foods'
 import { searchFoods } from '../lib/foodSearch'
@@ -176,6 +176,9 @@ export function AddSheet() {
   const [building, setBuilding] = useState(false)
   const [seedName, setSeedName] = useState('')
 
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const lastFocus = useRef<HTMLElement | null>(null)
+
   // Reset the amount/build panels whenever the sheet closes.
   useEffect(() => {
     if (!state.sheetOpen) {
@@ -183,6 +186,29 @@ export function AddSheet() {
       setBuilding(false)
     }
   }, [state.sheetOpen])
+
+  // A4 — dialog lifecycle. When closed the sheet is inert + aria-hidden so it's
+  // unreachable by keyboard/AT; when open, focus moves in, Escape closes, and
+  // focus returns to whatever opened it.
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el) return
+    if (state.sheetOpen) {
+      el.removeAttribute('inert')
+      lastFocus.current = (document.activeElement as HTMLElement) ?? null
+      const id = window.setTimeout(() => el.focus(), 60)
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') dispatch({ type: 'CLOSE_SHEET' })
+      }
+      document.addEventListener('keydown', onKey)
+      return () => {
+        window.clearTimeout(id)
+        document.removeEventListener('keydown', onKey)
+      }
+    }
+    el.setAttribute('inert', '')
+    lastFocus.current?.focus?.()
+  }, [state.sheetOpen, dispatch])
 
   const local = useMemo(() => {
     const base = [...state.customFoods, ...FOODS]
@@ -243,7 +269,15 @@ export function AddSheet() {
   return (
     <>
       <div className={`backdrop ${state.sheetOpen ? 'on' : ''}`} onClick={close} />
-      <div className={`sheet ${state.sheetOpen ? 'on' : ''}`} role="dialog" aria-label="Add food">
+      <div
+        ref={sheetRef}
+        className={`sheet ${state.sheetOpen ? 'on' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add food"
+        tabIndex={-1}
+        aria-hidden={!state.sheetOpen}
+      >
         <div className="grabber" />
         <div className="row-between" style={{ marginBottom: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 600 }}>{editItem ? 'Edit entry' : 'Add food'}</span>

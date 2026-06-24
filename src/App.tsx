@@ -65,10 +65,12 @@ export function App() {
 
   return (
     <div className="app">
-      {state.screen === 'onboarding' && <Onboarding />}
-      {state.screen === 'today' && <Today />}
-      {state.screen === 'trends' && <Trends />}
-      {state.screen === 'photo' && <PhotoLog />}
+      <main>
+        {state.screen === 'onboarding' && <Onboarding />}
+        {state.screen === 'today' && <Today />}
+        {state.screen === 'trends' && <Trends />}
+        {state.screen === 'photo' && <PhotoLog />}
+      </main>
 
       {showChrome && (
         <>

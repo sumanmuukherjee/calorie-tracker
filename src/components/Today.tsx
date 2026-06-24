@@ -32,6 +32,7 @@ export function Today() {
   return (
     <div className="fade-in">
       <div className="screen-pad">
+        <h1 className="sr-only">Today's summary</h1>
         <div className="row-between" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <i className="ti ti-chevron-left" style={{ fontSize: 20, color: 'var(--text-3)' }} aria-hidden="true" />
@@ -46,13 +47,13 @@ export function Today() {
               </span>
             )}
             {isCloud && (
-              <i
-                className="ti ti-logout"
-                role="button"
+              <button
                 aria-label="Sign out"
                 onClick={() => signOut()}
-                style={{ fontSize: 19, color: 'var(--text-3)', cursor: 'pointer' }}
-              />
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}
+              >
+                <i className="ti ti-logout" style={{ fontSize: 19 }} aria-hidden="true" />
+              </button>
             )}
           </div>
         </div>
@@ -142,13 +143,13 @@ export function Today() {
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{Math.round(item.kcal * item.qty)}</span>
-                    <i
-                      className="ti ti-x"
-                      style={{ fontSize: 15, color: 'var(--text-3)', cursor: 'pointer' }}
-                      role="button"
-                      aria-label="Remove"
+                    <button
+                      aria-label={`Remove ${item.name}`}
                       onClick={() => dispatch({ type: 'REMOVE_FOOD', meal, uid: item.uid })}
-                    />
+                      style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
               ))}
