@@ -1,4 +1,4 @@
-import { useStore, useTotals } from '../store'
+import { currentStreak, useStore, useTotals } from '../store'
 import { useAuth } from '../auth'
 import { MEAL_ORDER } from '../types'
 import type { LoggedFood, MealName } from '../types'
@@ -26,6 +26,7 @@ export function Today() {
   const { state, dispatch } = useStore()
   const { isCloud, signOut } = useAuth()
   const totals = useTotals()
+  const streak = currentStreak(state.history, state.currentDate, totals.eaten)
 
   return (
     <div className="fade-in">
@@ -37,10 +38,12 @@ export function Today() {
             <i className="ti ti-chevron-right" style={{ fontSize: 20, color: 'var(--text-3)' }} aria-hidden="true" />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--warn)', fontWeight: 600, fontSize: 14 }}>
-              <i className="ti ti-flame" style={{ fontSize: 18 }} aria-hidden="true" />
-              12
-            </span>
+            {streak > 0 && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--warn)', fontWeight: 600, fontSize: 14 }} aria-label={`${streak}-day logging streak`}>
+                <i className="ti ti-flame" style={{ fontSize: 18 }} aria-hidden="true" />
+                {streak}
+              </span>
+            )}
             {isCloud && (
               <i
                 className="ti ti-logout"
@@ -66,10 +69,14 @@ export function Today() {
           <span>
             <b style={{ color: 'var(--text)' }}>{totals.eaten.toLocaleString()}</b> food
           </span>
-          <span style={{ color: 'var(--text-3)' }}>+</span>
-          <span>
-            <b style={{ color: 'var(--text)' }}>{state.exercise}</b> exercise
-          </span>
+          {state.exercise > 0 && (
+            <>
+              <span style={{ color: 'var(--text-3)' }}>+</span>
+              <span>
+                <b style={{ color: 'var(--text)' }}>{state.exercise}</b> exercise
+              </span>
+            </>
+          )}
         </div>
 
         <MacroBars macros={totals.macros} goals={totals.macroGoals} />

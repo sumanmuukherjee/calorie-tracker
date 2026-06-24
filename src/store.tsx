@@ -45,6 +45,22 @@ function totalKcal(meals: Record<MealName, LoggedFood[]>): number {
   return Math.round(t)
 }
 
+// Single source of truth for the logging streak (consecutive days back from today
+// with calories logged). Used by both the Today header and Trends so they agree.
+export function currentStreak(history: Record<string, number>, currentDate: string, todayEaten: number): number {
+  let streak = 0
+  const base = new Date()
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(base)
+    d.setDate(base.getDate() - i)
+    const ds = d.toLocaleDateString('en-CA')
+    const kcal = ds === currentDate ? todayEaten : history[ds] ?? 0
+    if (kcal > 0) streak++
+    else break
+  }
+  return streak
+}
+
 // When a new calendar day starts, archive the finished day's total into
 // history and clear the meals so the diary is fresh for today.
 function rolloverIfNeeded(s: AppState): AppState {
@@ -80,7 +96,7 @@ function freshDefault(): AppState {
     goal: 'lose',
     rate: 0.5,
     customTarget: null,
-    exercise: 320,
+    exercise: 0,
     meals: emptyMeals(),
     sheetOpen: false,
     sheetMeal: 'Lunch',
@@ -98,7 +114,10 @@ function localInitialState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const saved = JSON.parse(raw)
-      const merged = { ...base, ...saved, sheetOpen: false, hydrating: false, screen: saved.onboarded ? 'today' : 'onboarding' }
+      // exercise: 0 clears the legacy seeded "320" — there's no real exercise
+      // source yet, so any persisted value is the phantom. Drop this override
+      // once exercise is fed by Health (active energy) or a manual editor.
+      const merged = { ...base, ...saved, exercise: 0, sheetOpen: false, hydrating: false, screen: saved.onboarded ? 'today' : 'onboarding' }
       return rolloverIfNeeded(merged)
     }
   } catch {
@@ -156,6 +175,7 @@ function reducer(state: AppState, action: Action): AppState {
       return rolloverIfNeeded({
         ...state,
         ...action.state,
+        exercise: 0, // clear the legacy seeded value until a real source exists
         sheetOpen: false,
         hydrating: false,
         screen: action.state.onboarded ? 'today' : 'onboarding',

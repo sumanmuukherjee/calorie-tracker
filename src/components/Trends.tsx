@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useStore, useTotals } from '../store'
+import { currentStreak, useStore, useTotals } from '../store'
 import { fromKg, getWeightUnit, toKg } from '../lib/units'
 
 const RANGES = [7, 30, 90]
@@ -75,13 +75,7 @@ export function Trends() {
   const avgIntake = intakeVals.length ? Math.round(intakeVals.reduce((a, b) => a + b, 0) / intakeVals.length) : 0
   const avgDeficit = avgIntake ? Math.round(maintenance - avgIntake) : 0
 
-  let streak = 0
-  for (let i = 0; i < 400; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    if (kcalFor(d.toLocaleDateString('en-CA')) > 0) streak++
-    else break
-  }
+  const streak = currentStreak(state.history, state.currentDate, eaten)
 
   const logWeight = () => {
     const entered = parseFloat(wt)
