@@ -27,8 +27,10 @@ function QuantityPanel({
   onRemove?: () => void
 }) {
   const per100g = food.portion === 'per 100 g'
-  const step = per100g ? 10 : 0.5
-  const minA = per100g ? 1 : 0.25
+  const OZ = 28.3495 // grams per ounce
+  const [unit, setUnit] = useState<'g' | 'oz'>('g')
+  const step = per100g ? (unit === 'g' ? 10 : 0.5) : 0.5
+  const minA = per100g ? (unit === 'g' ? 1 : 0.1) : 0.25
   const initialAmount = initialQty != null ? (per100g ? initialQty * 100 : initialQty) : per100g ? 100 : 1
   const [amount, setAmount] = useState(initialAmount)
   const [text, setText] = useState(() => String(initialAmount))
@@ -38,7 +40,19 @@ function QuantityPanel({
     setAmount(v)
     setText(String(v))
   }
-  const qty = per100g ? amount / 100 : amount
+  // F9 — per-100g foods can be entered in grams or ounces (exact conversion);
+  // serving-based foods stay in servings.
+  const chooseUnit = (u: 'g' | 'oz') => {
+    if (!per100g || u === unit) return
+    const next = u === 'oz' ? amount / OZ : amount * OZ
+    setUnit(u)
+    const min = u === 'g' ? 1 : 0.1
+    const v = Math.max(min, Math.round(next * 100) / 100)
+    setAmount(v)
+    setText(String(v))
+  }
+  const grams = per100g ? (unit === 'g' ? amount : amount * OZ) : 0
+  const qty = per100g ? grams / 100 : amount
   const macro = (m: number) => Math.round(m * qty)
 
   return (
@@ -49,7 +63,18 @@ function QuantityPanel({
       <div style={{ fontSize: 17, fontWeight: 600 }}>{food.name}</div>
       <div className="tiny" style={{ color: 'var(--text-3)', marginBottom: 16 }}>{per100g ? 'per 100 g' : food.portion}</div>
 
-      <div className="eyebrow" style={{ marginBottom: 8 }}>{per100g ? 'Amount in grams' : 'Servings'}</div>
+      <div className="row-between" style={{ marginBottom: 8 }}>
+        <span className="eyebrow">{per100g ? `Amount in ${unit === 'g' ? 'grams' : 'ounces'}` : 'Servings'}</span>
+        {per100g && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['g', 'oz'] as const).map((u) => (
+              <button key={u} type="button" onClick={() => chooseUnit(u)} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '0.5px solid var(--border)', background: unit === u ? 'var(--accent)' : 'transparent', color: unit === u ? '#fff' : 'var(--text-3)', cursor: 'pointer' }}>
+                {u}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <button type="button" onClick={() => setBoth(amount - step)} className="iconbtn" style={{ width: 42, height: 42, fontSize: 22 }} aria-label="Less">−</button>
         <input
@@ -66,7 +91,7 @@ function QuantityPanel({
         />
         <button type="button" onClick={() => setBoth(amount + step)} className="iconbtn" style={{ width: 42, height: 42, fontSize: 22 }} aria-label="More">+</button>
       </div>
-      <div className="tiny" style={{ color: 'var(--text-3)', marginBottom: 16 }}>{per100g ? 'grams' : `× ${food.portion}`}</div>
+      <div className="tiny" style={{ color: 'var(--text-3)', marginBottom: 16 }}>{per100g ? unit : `× ${food.portion}`}</div>
 
       <div className="strip" style={{ textAlign: 'center', borderRadius: 'var(--radius-lg)', padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 30, fontWeight: 600, color: 'var(--accent)' }}>
