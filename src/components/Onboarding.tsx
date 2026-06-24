@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { uploadAvatar } from '../lib/avatar'
+import { AvatarCropper } from './AvatarCropper'
 import { ACTIVITY_LEVELS, dailyTarget, macroTargets, tdee } from '../lib/nutrition'
 import type { Goal, Profile } from '../types'
 
@@ -68,20 +69,32 @@ export function Onboarding() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [cropFile, setCropFile] = useState<File | null>(null)
 
   const username = (user?.user_metadata?.username as string | undefined) || ''
   const initials = (username || user?.email || '?').slice(0, 2).toUpperCase()
 
-  const onPickAvatar = async (e: ChangeEvent<HTMLInputElement>) => {
+  // Pick a file -> open the cropper (don't upload yet). Reset the input so the
+  // same file can be re-selected after cancelling.
+  const onPickAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !user) return
+    e.target.value = ''
+    if (!file || !user || uploadingAvatar) return
     setAvatarError('')
+    setCropFile(file)
+  }
+
+  // The cropper returns a small square JPEG blob; upload that.
+  const onCropped = async (blob: Blob) => {
+    setCropFile(null)
+    if (!user) return
+    const cropped = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
     setUploadingAvatar(true)
     try {
-      const url = await uploadAvatar(user.id, file)
+      const url = await uploadAvatar(user.id, cropped)
       dispatch({ type: 'SET_AVATAR', url })
     } catch {
-      setAvatarError('Upload failed — try a smaller image.')
+      setAvatarError('Upload failed — please try again.')
     } finally {
       setUploadingAvatar(false)
     }
@@ -106,6 +119,7 @@ export function Onboarding() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
+            disabled={uploadingAvatar}
             aria-label="Change profile photo"
             style={{
               position: 'relative',
@@ -114,7 +128,8 @@ export function Onboarding() {
               borderRadius: '50%',
               border: 'none',
               padding: 0,
-              cursor: 'pointer',
+              cursor: uploadingAvatar ? 'default' : 'pointer',
+              opacity: uploadingAvatar ? 0.6 : 1,
               background: 'var(--surface-2)',
               overflow: 'hidden',
               display: 'flex',
@@ -153,6 +168,8 @@ export function Onboarding() {
           {avatarError && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{avatarError}</div>}
         </div>
       )}
+
+      {cropFile && <AvatarCropper file={cropFile} onCancel={() => setCropFile(null)} onCropped={onCropped} />}
 
       <h1 className="h-title" style={{ fontSize: 22, marginBottom: 4 }}>
         Set your daily goal

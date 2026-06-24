@@ -204,6 +204,42 @@ input {
 .mealchip { padding: 7px 13px; border-radius: 99px; border: 0.5px solid var(--border); background: transparent; font-size: 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
 .mealchip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
 
+/* ============================ AVATAR CROPPER ============================ */
+.crop-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  touch-action: none; overscroll-behavior: none;
+}
+.crop-modal {
+  background: var(--card); border: 0.5px solid var(--border);
+  border-radius: var(--radius-xl); padding: 20px 18px;
+  width: 100%; max-width: 340px;
+  max-height: 100%; overflow-y: auto;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  outline: none;
+}
+.crop-stage {
+  position: relative; margin: 2px auto 4px;
+  width: min(280px, 100%); aspect-ratio: 1 / 1;
+  border-radius: var(--radius); overflow: hidden;
+  background: var(--surface-2);
+}
+.crop-ring {
+  position: absolute; inset: 0; margin: auto;
+  width: 100%; height: 100%; border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+.crop-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.crop-controls { display: flex; align-items: center; gap: 12px; width: 100%; margin: 14px 0 4px; }
+.crop-actions { display: flex; gap: 10px; width: 100%; margin-top: 16px; }
+/* ========================== END AVATAR CROPPER ========================== */
+
 /* ============================ LANDING PAGE ============================ */
 .lp {
   width: 100%;

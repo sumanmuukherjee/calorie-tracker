@@ -12,5 +12,6 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
     .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type })
   if (error) throw error
   const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-  return `${data.publicUrl}?t=${file.size}`
+  // Bust the CDN/browser cache so a freshly-cropped photo replaces the old one.
+  return `${data.publicUrl}?t=${Date.now()}`
 }
