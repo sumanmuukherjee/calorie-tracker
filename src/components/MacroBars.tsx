@@ -13,7 +13,14 @@ function Bar({ label, value, goal, color }: { label: string; value: number; goal
           {Math.round(value)} / {goal} g
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden' }}>
+      <div
+        style={{ height: 6, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden' }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={goal}
+        aria-valuenow={Math.round(value)}
+        aria-label={`${label} ${Math.round(value)} of ${goal} grams`}
+      >
         <div
           style={{
             height: '100%',

@@ -54,12 +54,18 @@ export function PhotoLog() {
           <i className="ti ti-arrow-left" style={{ fontSize: 18 }} aria-hidden="true" />
         </button>
         <div style={{ position: 'absolute', top: 14, right: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, padding: '4px 9px', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <i className="ti ti-sparkles" style={{ fontSize: 13 }} aria-hidden="true" />
-          AI detected {items.length} items
+          <i className="ti ti-flask" style={{ fontSize: 13 }} aria-hidden="true" />
+          Demo
         </div>
       </div>
 
       <div className="screen-pad">
+        <div className="strip" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: 'var(--text-2)' }}>
+          <i className="ti ti-info-circle" style={{ fontSize: 16, color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <span>
+            <b style={{ color: 'var(--text)' }}>Demo preview.</b> These are sample items, not detected from a photo. Real photo recognition is coming soon — you can still log them to try the flow.
+          </span>
+        </div>
         <div className="row-between" style={{ marginBottom: 2 }}>
           <span style={{ fontSize: 16, fontWeight: 600 }}>Review &amp; confirm</span>
           <span className="muted" style={{ fontSize: 12 }}>Adding to Lunch</span>

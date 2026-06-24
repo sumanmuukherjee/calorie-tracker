@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { uploadAvatar } from '../lib/avatar'
 import { AvatarCropper } from './AvatarCropper'
-import { ACTIVITY_LEVELS, dailyTarget, macroTargets, tdee } from '../lib/nutrition'
+import { ACTIVITY_LEVELS, CALORIE_FLOOR, dailyTarget, macroTargets, targetFloorApplied, tdee } from '../lib/nutrition'
 import { fromKg, getWeightUnit, setWeightUnitPref, toKg, type WeightUnit } from '../lib/units'
 import type { Goal, Profile } from '../types'
 
@@ -329,6 +329,15 @@ export function Onboarding() {
             <i className="ti ti-flame" style={{ fontSize: 13 }} aria-hidden="true" />
             about {adjustment.toLocaleString()} kcal/day {goal === 'lose' ? 'below' : 'above'} maintenance
           </div>
+        </div>
+      )}
+
+      {targetMode === 'recommended' && targetFloorApplied(maintenance, goal, rate) && (
+        <div className="strip" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', marginBottom: 14, fontSize: 12, lineHeight: 1.5, color: 'var(--text-2)' }}>
+          <i className="ti ti-shield-check" style={{ fontSize: 16, color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <span>
+            We've held your target at the safe minimum of <b style={{ color: 'var(--text)' }}>{CALORIE_FLOOR.toLocaleString()} kcal</b>. A faster pace won't lower it further — eating less than this isn't recommended.
+          </span>
         </div>
       )}
 

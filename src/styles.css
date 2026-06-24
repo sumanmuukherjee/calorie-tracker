@@ -5,7 +5,7 @@
   --card: #ffffff;
   --text: #2a1747;
   --text-2: #6b6286;
-  --text-3: #9a93b3;
+  --text-3: #6f6a8d; /* AA: ~4.8:1 on --bg (was #9a93b3 ~2.1:1) */
   --border: rgba(58, 29, 143, 0.12);
   --border-2: rgba(58, 29, 143, 0.22);
   --accent: #7c3aed;
@@ -31,7 +31,7 @@
     --card: #1d1735;
     --text: #efeafb;
     --text-2: #a99fc8;
-    --text-3: #756c93;
+    --text-3: #8a82a8; /* AA: ~5:1 on dark --bg (was #756c93 ~3.8:1) */
     --border: rgba(255, 255, 255, 0.10);
     --border-2: rgba(255, 255, 255, 0.18);
     --accent: #9b6cff;
@@ -200,6 +200,15 @@ input {
   cursor: pointer; font-size: 11px; color: var(--text-2);
 }
 .method:active { transform: scale(0.96); }
+.method-soon { opacity: 0.72; }
+.method .soon { font-size: 9px; font-weight: 700; letter-spacing: 0.3px; color: var(--accent); background: var(--accent-soft); border-radius: 99px; padding: 1px 6px; text-transform: uppercase; }
+
+/* A1 — visible keyboard focus on every interactive element */
+:where(button, a, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 
 .mealchip { padding: 7px 13px; border-radius: 99px; border: 0.5px solid var(--border); background: transparent; font-size: 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
 .mealchip.on { background: var(--text); color: var(--bg); border-color: var(--text); }

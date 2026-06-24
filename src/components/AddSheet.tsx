@@ -4,6 +4,7 @@ import { FOODS } from '../data/foods'
 import { searchFoods } from '../lib/foodSearch'
 import { MEAL_ORDER } from '../types'
 import type { Food, MealName } from '../types'
+import { itemCount } from '../lib/format'
 
 // Amount picker shown after tapping a food. Database foods (per 100 g) are
 // entered in grams; recents are entered in servings of their portion. All
@@ -167,7 +168,7 @@ export function AddSheet() {
 
             <div className="tiny" style={{ color: 'var(--text-2)', margin: '0 0 11px 2px' }}>
               {state.sheetMeal}: <b style={{ color: 'var(--text)', fontWeight: 600 }}>{mealKcal} kcal</b>
-              {mealItems.length ? ` · ${mealItems.length} item${mealItems.length > 1 ? 's' : ''}` : ' · tap items to add'}
+              {mealItems.length ? ` · ${itemCount(mealItems.length)}` : ' · tap items to add'}
             </div>
 
             <div style={{ position: 'relative', marginBottom: 11 }}>
@@ -189,13 +190,15 @@ export function AddSheet() {
                 <i className="ti ti-camera" style={{ fontSize: 19 }} aria-hidden="true" />
                 Photo
               </button>
-              <button className="method" onClick={() => flash('Barcode scanner opens here')}>
+              <button className="method method-soon" aria-label="Scan a barcode — coming soon" onClick={() => flash('Barcode scanning is coming soon')}>
                 <i className="ti ti-barcode" style={{ fontSize: 19 }} aria-hidden="true" />
                 Scan
+                <span className="soon">Soon</span>
               </button>
-              <button className="method" onClick={() => flash('Voice logging opens here')}>
+              <button className="method method-soon" aria-label="Voice logging — coming soon" onClick={() => flash('Voice logging is coming soon')}>
                 <i className="ti ti-microphone" style={{ fontSize: 19 }} aria-hidden="true" />
                 Voice
+                <span className="soon">Soon</span>
               </button>
               <button className="method" onClick={() => flash('Build a custom food')}>
                 <i className="ti ti-pencil-plus" style={{ fontSize: 19 }} aria-hidden="true" />

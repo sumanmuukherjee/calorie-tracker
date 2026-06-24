@@ -1,4 +1,5 @@
 import { currentStreak, useStore, useTotals } from '../store'
+import { itemCount } from '../lib/format'
 import { useAuth } from '../auth'
 import { MEAL_ORDER } from '../types'
 import type { LoggedFood, MealName } from '../types'
@@ -110,7 +111,7 @@ export function Today() {
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{meal}</div>
                     <div className="tiny" style={{ color: 'var(--text-3)' }}>
-                      {items.length ? `${items.length} items` : 'Nothing logged yet'}
+                      {items.length ? itemCount(items.length) : 'Nothing logged yet'}
                     </div>
                   </div>
                 </div>

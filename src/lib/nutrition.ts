@@ -14,13 +14,22 @@ export function tdee(p: Profile): number {
 }
 
 const KCAL_PER_KG = 7700
+export const CALORIE_FLOOR = 1200
 
-export function dailyTarget(maintenance: number, goal: Goal, rateKgPerWeek: number): number {
+function rawTarget(maintenance: number, goal: Goal, rateKgPerWeek: number): number {
   let adjustment = 0
   if (goal === 'lose') adjustment = -(rateKgPerWeek * KCAL_PER_KG) / 7
   else if (goal === 'gain') adjustment = ((rateKgPerWeek * KCAL_PER_KG) / 7) * 0.85
-  const raw = maintenance + adjustment
-  return Math.max(1200, Math.round(raw / 10) * 10)
+  return maintenance + adjustment
+}
+
+export function dailyTarget(maintenance: number, goal: Goal, rateKgPerWeek: number): number {
+  return Math.max(CALORIE_FLOOR, Math.round(rawTarget(maintenance, goal, rateKgPerWeek) / 10) * 10)
+}
+
+/** True when the computed deficit would push the target below the safe floor. */
+export function targetFloorApplied(maintenance: number, goal: Goal, rateKgPerWeek: number): boolean {
+  return goal === 'lose' && rawTarget(maintenance, goal, rateKgPerWeek) < CALORIE_FLOOR
 }
 
 export interface MacroTargets {

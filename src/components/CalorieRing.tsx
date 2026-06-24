@@ -14,7 +14,15 @@ export function CalorieRing({ target, exercise, eaten, remaining }: Props) {
   const stroke = over ? 'var(--danger)' : 'var(--accent)'
 
   return (
-    <div style={{ position: 'relative', width: 172, height: 172, margin: '6px auto 4px' }}>
+    <div
+      style={{ position: 'relative', width: 172, height: 172, margin: '6px auto 4px' }}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={target}
+      aria-valuenow={Math.min(eaten, target)}
+      aria-label="Calories"
+      aria-valuetext={`${eaten.toLocaleString()} of ${target.toLocaleString()} kcal eaten — ${Math.abs(remaining).toLocaleString()} ${over ? 'over' : 'remaining'}`}
+    >
       <svg viewBox="0 0 172 172" width={172} height={172} aria-hidden="true">
         <circle cx={86} cy={86} r={R} fill="none" stroke="var(--surface-2)" strokeWidth={13} />
         <circle
