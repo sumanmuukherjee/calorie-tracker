@@ -51,4 +51,5 @@ export interface AppState {
   currentDate: string // YYYY-MM-DD the meals belong to
   history: Record<string, number> // date -> total kcal eaten that day
   weighIns: WeighIn[]
+  customFoods: Food[] // user-created foods, searchable and loggable
 }

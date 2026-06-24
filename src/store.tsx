@@ -25,6 +25,7 @@ type Action =
   | { type: 'SET_HYDRATING'; value: boolean }
   | { type: 'SET_AVATAR'; url: string }
   | { type: 'LOG_WEIGHT'; kg: number }
+  | { type: 'ADD_CUSTOM_FOOD'; food: Food }
   | { type: 'RESET' }
 
 const uid = () =>
@@ -107,6 +108,7 @@ function freshDefault(): AppState {
     currentDate: todayStr(),
     history: {},
     weighIns: [],
+    customFoods: [],
   }
 }
 
@@ -205,6 +207,8 @@ function reducer(state: AppState, action: Action): AppState {
         weighIns: [...others, { date, kg: action.kg }].sort((a, b) => a.date.localeCompare(b.date)),
       }
     }
+    case 'ADD_CUSTOM_FOOD':
+      return { ...state, customFoods: [action.food, ...state.customFoods.filter((f) => f.id !== action.food.id)] }
     case 'RESET':
       return freshDefault()
     default:

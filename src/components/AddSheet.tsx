@@ -93,6 +93,79 @@ function QuantityPanel({
   )
 }
 
+const fieldStyle = { width: '100%', boxSizing: 'border-box' as const, padding: '10px 11px', borderRadius: 'var(--radius-sm)', border: '0.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)', outline: 'none', fontSize: 16 }
+
+function NumField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <input type="text" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder="0" style={fieldStyle} />
+    </div>
+  )
+}
+
+// F2 — build a real custom food (name, serving, kcal, macros) that persists and
+// is then searchable/loggable like any other food.
+function CustomFoodForm({ seedName, onBack, onSave }: { seedName: string; onBack: () => void; onSave: (food: Food) => void }) {
+  const [name, setName] = useState(seedName)
+  const [portion, setPortion] = useState('1 serving')
+  const [kcal, setKcal] = useState('')
+  const [p, setP] = useState('')
+  const [c, setC] = useState('')
+  const [f, setF] = useState('')
+  const num = (s: string) => {
+    const n = parseFloat(s)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }
+  const kcalN = num(kcal)
+  const pN = num(p) ?? 0
+  const cN = num(c) ?? 0
+  const fN = num(f) ?? 0
+  const valid = name.trim().length > 0 && kcalN != null
+  const macroKcal = Math.round(pN * 4 + cN * 4 + fN * 9)
+  const mismatch = kcalN != null && (pN > 0 || cN > 0 || fN > 0) && Math.abs(macroKcal - kcalN) > 60
+
+  return (
+    <div className="fade-in">
+      <button type="button" onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--text-2)', fontSize: 14, cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+        <i className="ti ti-chevron-left" style={{ fontSize: 18 }} aria-hidden="true" /> Back
+      </button>
+      <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 14 }}>Create a food</div>
+
+      <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Name</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Homemade granola" style={{ ...fieldStyle, marginBottom: 12 }} />
+
+      <label className="tiny" style={{ color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Serving</label>
+      <input value={portion} onChange={(e) => setPortion(e.target.value)} placeholder="1 serving" style={{ ...fieldStyle, marginBottom: 12 }} />
+
+      <div style={{ marginBottom: 12 }}>
+        <NumField label="Calories (kcal)" value={kcal} onChange={setKcal} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <NumField label="Protein (g)" value={p} onChange={setP} />
+        <NumField label="Carbs (g)" value={c} onChange={setC} />
+        <NumField label="Fat (g)" value={f} onChange={setF} />
+      </div>
+      {mismatch && (
+        <div className="tiny" style={{ color: 'var(--text-2)', marginBottom: 10 }}>
+          Heads up — your macros add up to about {macroKcal.toLocaleString()} kcal.
+        </div>
+      )}
+      <button
+        className="primary"
+        disabled={!valid}
+        style={{ opacity: valid ? 1 : 0.5, marginTop: 6 }}
+        onClick={() =>
+          valid &&
+          onSave({ id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name: name.trim(), portion: portion.trim() || '1 serving', kcal: Math.round(kcalN as number), p: Math.round(pN), c: Math.round(cN), f: Math.round(fN) })
+        }
+      >
+        Save food
+      </button>
+    </div>
+  )
+}
+
 export function AddSheet() {
   const { state, dispatch } = useStore()
   const [query, setQuery] = useState('')
@@ -100,17 +173,23 @@ export function AddSheet() {
   const [remote, setRemote] = useState<Food[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<Food | null>(null)
+  const [building, setBuilding] = useState(false)
+  const [seedName, setSeedName] = useState('')
 
-  // Reset the amount panel whenever the sheet closes.
+  // Reset the amount/build panels whenever the sheet closes.
   useEffect(() => {
-    if (!state.sheetOpen) setSelected(null)
+    if (!state.sheetOpen) {
+      setSelected(null)
+      setBuilding(false)
+    }
   }, [state.sheetOpen])
 
   const local = useMemo(() => {
+    const base = [...state.customFoods, ...FOODS]
     const q = query.trim().toLowerCase()
-    if (!q) return FOODS
-    return FOODS.filter((f) => f.name.toLowerCase().includes(q))
-  }, [query])
+    if (!q) return base
+    return base.filter((f) => f.name.toLowerCase().includes(q))
+  }, [query, state.customFoods])
 
   useEffect(() => {
     const q = query.trim()
@@ -192,6 +271,17 @@ export function AddSheet() {
               close()
             }}
           />
+        ) : building ? (
+          <CustomFoodForm
+            seedName={seedName}
+            onBack={() => setBuilding(false)}
+            onSave={(food) => {
+              dispatch({ type: 'ADD_CUSTOM_FOOD', food })
+              setBuilding(false)
+              setQuery('')
+              setSelected(food)
+            }}
+          />
         ) : selected ? (
           <QuantityPanel
             food={selected}
@@ -247,7 +337,7 @@ export function AddSheet() {
                 Voice
                 <span className="soon">Soon</span>
               </button>
-              <button className="method" onClick={() => flash('Build a custom food')}>
+              <button className="method" onClick={() => { setSeedName(''); setBuilding(true) }}>
                 <i className="ti ti-pencil-plus" style={{ fontSize: 19 }} aria-hidden="true" />
                 Custom
               </button>
@@ -259,9 +349,13 @@ export function AddSheet() {
 
             <div>
               {results.length === 0 ? (
-                <div className="muted" style={{ fontSize: 13, padding: '14px 4px' }}>
-                  {searching ? 'Searching…' : 'No matches — tap “Custom” to create it.'}
-                </div>
+                searching ? (
+                  <div className="muted" style={{ fontSize: 13, padding: '14px 4px' }}>Searching…</div>
+                ) : (
+                  <button className="primary" onClick={() => { setSeedName(query.trim()); setBuilding(true) }} style={{ marginTop: 6 }}>
+                    + Create {query.trim() ? `“${query.trim()}”` : 'a custom food'}
+                  </button>
+                )
               ) : (
                 results.map((food) => (
                   <div key={food.id} className="foodrow" onClick={() => setSelected(food)}>
