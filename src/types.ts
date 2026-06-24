@@ -50,6 +50,7 @@ export interface AppState {
   avatarUrl?: string
   currentDate: string // YYYY-MM-DD the meals belong to
   history: Record<string, number> // date -> total kcal eaten that day
+  macroHistory: Record<string, { p: number; c: number; f: number }> // date -> macros eaten
   weighIns: WeighIn[]
   customFoods: Food[] // user-created foods, searchable and loggable
 }

@@ -49,9 +49,33 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
   )
 }
 
+function MacroSpark({ label, values, color, avg }: { label: string; values: number[]; color: string; avg: number }) {
+  const W = 300
+  const H = 34
+  const pad = 2
+  const max = Math.max(...values, 1)
+  const pts = values.map((v, i) => {
+    const x = pad + (W - 2 * pad) * (values.length <= 1 ? 0.5 : i / (values.length - 1))
+    const y = pad + (H - 2 * pad) * (1 - v / max)
+    return `${x.toFixed(1)} ${y.toFixed(1)}`
+  })
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p}`).join(' ')
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+        <span style={{ color, fontWeight: 600 }}>{label}</span>
+        <span className="muted">avg {avg} g</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
+        <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    </div>
+  )
+}
+
 export function Trends() {
   const { state, dispatch } = useStore()
-  const { eaten, target, maintenance } = useTotals()
+  const { eaten, target, maintenance, macros } = useTotals()
   const [range, setRange] = useState(30)
   const [wt, setWt] = useState('')
   const [unit] = useState(getWeightUnit)
@@ -76,6 +100,18 @@ export function Trends() {
   const avgDeficit = avgIntake ? Math.round(maintenance - avgIntake) : 0
 
   const streak = currentStreak(state.history, state.currentDate, eaten)
+
+  // F13 — macro trends. Today's macros are live; past days come from macroHistory.
+  const macroFor = (date: string, key: 'p' | 'c' | 'f') =>
+    date === state.currentDate ? macros[key] : state.macroHistory[date]?.[key] ?? 0
+  const proteinSeries = rangeDates.map((d) => macroFor(d, 'p'))
+  const carbSeries = rangeDates.map((d) => macroFor(d, 'c'))
+  const fatSeries = rangeDates.map((d) => macroFor(d, 'f'))
+  const avgOf = (s: number[]) => {
+    const nz = s.filter((v) => v > 0)
+    return nz.length ? Math.round(nz.reduce((a, b) => a + b, 0) / nz.length) : 0
+  }
+  const hasMacroData = [proteinSeries, carbSeries, fatSeries].some((s) => s.some((v) => v > 0))
 
   const logWeight = () => {
     const entered = parseFloat(wt)
@@ -181,6 +217,21 @@ export function Trends() {
         <Stat label="Avg deficit" value={avgIntake ? (avgDeficit >= 0 ? `−${avgDeficit}` : `+${-avgDeficit}`) : '—'} />
         <Stat label="Logging streak" value={`${streak} day${streak === 1 ? '' : 's'}`} color="var(--warn)" />
       </div>
+
+      <div className="eyebrow" style={{ margin: '20px 0 8px' }}>
+        Macros · last {range} days
+      </div>
+      {hasMacroData ? (
+        <div className="strip" style={{ padding: '12px 14px' }}>
+          <MacroSpark label="Protein" values={proteinSeries} color="var(--blue)" avg={avgOf(proteinSeries)} />
+          <MacroSpark label="Carbs" values={carbSeries} color="var(--amber)" avg={avgOf(carbSeries)} />
+          <MacroSpark label="Fat" values={fatSeries} color="var(--coral)" avg={avgOf(fatSeries)} />
+        </div>
+      ) : (
+        <div className="strip" style={{ fontSize: 13, color: 'var(--text-2)', padding: 14 }}>
+          Log a few days to see your macro trends.
+        </div>
+      )}
     </div>
   )
 }

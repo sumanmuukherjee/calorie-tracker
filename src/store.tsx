@@ -48,6 +48,19 @@ function totalKcal(meals: Record<MealName, LoggedFood[]>): number {
   return Math.round(t)
 }
 
+function totalMacros(meals: Record<MealName, LoggedFood[]>): { p: number; c: number; f: number } {
+  let p = 0
+  let c = 0
+  let f = 0
+  for (const m of MEAL_ORDER)
+    for (const i of meals[m]) {
+      p += i.p * i.qty
+      c += i.c * i.qty
+      f += i.f * i.qty
+    }
+  return { p: Math.round(p), c: Math.round(c), f: Math.round(f) }
+}
+
 // Single source of truth for the logging streak (consecutive days back from today
 // with calories logged). Used by both the Today header and Trends so they agree.
 export function currentStreak(history: Record<string, number>, currentDate: string, todayEaten: number): number {
@@ -70,9 +83,13 @@ function rolloverIfNeeded(s: AppState): AppState {
   const today = todayStr()
   if (s.currentDate === today) return s
   const history = { ...(s.history || {}) }
+  const macroHistory = { ...(s.macroHistory || {}) }
   const finished = totalKcal(s.meals)
-  if (s.currentDate && finished > 0) history[s.currentDate] = finished
-  return { ...s, currentDate: today, history, meals: emptyMeals() }
+  if (s.currentDate && finished > 0) {
+    history[s.currentDate] = finished
+    macroHistory[s.currentDate] = totalMacros(s.meals)
+  }
+  return { ...s, currentDate: today, history, macroHistory, meals: emptyMeals() }
 }
 
 function seededMeals(): Record<MealName, LoggedFood[]> {
@@ -107,6 +124,7 @@ function freshDefault(): AppState {
     hydrating: false,
     currentDate: todayStr(),
     history: {},
+    macroHistory: {},
     weighIns: [],
     customFoods: [],
   }
