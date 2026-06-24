@@ -5,9 +5,9 @@ import { passwordError, usernameError } from '../lib/validate'
 
 type Mode = 'in' | 'up' | 'forgot'
 
-export function Auth() {
+export function Auth({ initialMode = 'in', onBack }: { initialMode?: 'in' | 'up'; onBack?: () => void } = {}) {
   const { signIn, signUp, resetPassword, checkUsername } = useAuth()
-  const [mode, setMode] = useState<Mode>('in')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -78,6 +78,15 @@ export function Auth() {
 
   return (
     <div style={wrap}>
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-2)', fontSize: 14, cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}
+        >
+          <i className="ti ti-chevron-left" style={{ fontSize: 18 }} aria-hidden="true" /> Back
+        </button>
+      )}
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={logo}>
           <svg viewBox="0 0 100 100" width={42} height={42} aria-hidden="true">

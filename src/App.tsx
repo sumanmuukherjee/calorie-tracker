@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore } from './store'
 import { useAuth } from './auth'
 import { Today } from './components/Today'
@@ -7,6 +8,7 @@ import { PhotoLog } from './components/PhotoLog'
 import { AddSheet } from './components/AddSheet'
 import { BottomNav } from './components/BottomNav'
 import { Auth } from './components/Auth'
+import { Landing } from './components/Landing'
 import { UpdatePassword } from './components/UpdatePassword'
 
 function Splash({ label }: { label: string }) {
@@ -32,13 +34,28 @@ function Splash({ label }: { label: string }) {
   )
 }
 
+// Signed-out cloud visitors see the marketing landing page first; its CTAs
+// drop them into the auth form in the right mode, with a way back.
+function Welcome() {
+  const [view, setView] = useState<{ kind: 'landing' } | { kind: 'auth'; mode: 'in' | 'up' }>({ kind: 'landing' })
+  if (view.kind === 'auth') {
+    return <Auth initialMode={view.mode} onBack={() => setView({ kind: 'landing' })} />
+  }
+  return (
+    <Landing
+      onCreate={() => setView({ kind: 'auth', mode: 'up' })}
+      onSignIn={() => setView({ kind: 'auth', mode: 'in' })}
+    />
+  )
+}
+
 export function App() {
   const { isCloud, loading, session, recovery } = useAuth()
   const { state } = useStore()
 
   if (loading) return <Splash label="Starting up…" />
   if (isCloud && recovery) return <UpdatePassword />
-  if (isCloud && !session) return <Auth />
+  if (isCloud && !session) return <Welcome />
   if (isCloud && state.hydrating) return <Splash label="Loading your diary…" />
 
   const showChrome = state.screen !== 'onboarding'
