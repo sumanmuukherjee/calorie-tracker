@@ -12,7 +12,9 @@ type Action =
   | { type: 'ADD_FOOD'; meal: MealName; food: Food; qty?: number }
   | { type: 'ADD_MANY'; meal: MealName; foods: { food: Food; qty: number }[] }
   | { type: 'REMOVE_FOOD'; meal: MealName; uid: string }
+  | { type: 'UPDATE_FOOD'; meal: MealName; uid: string; qty: number }
   | { type: 'OPEN_SHEET'; meal: MealName }
+  | { type: 'OPEN_EDIT'; meal: MealName; uid: string }
   | { type: 'CLOSE_SHEET' }
   | { type: 'SET_SCREEN'; screen: Screen }
   | { type: 'SET_GOAL'; goal: Goal }
@@ -100,6 +102,7 @@ function freshDefault(): AppState {
     meals: emptyMeals(),
     sheetOpen: false,
     sheetMeal: 'Lunch',
+    editing: null,
     hydrating: false,
     currentDate: todayStr(),
     history: {},
@@ -157,10 +160,20 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         meals: { ...state.meals, [action.meal]: state.meals[action.meal].filter((i) => i.uid !== action.uid) },
       }
+    case 'UPDATE_FOOD':
+      return {
+        ...state,
+        meals: {
+          ...state.meals,
+          [action.meal]: state.meals[action.meal].map((i) => (i.uid === action.uid ? { ...i, qty: action.qty } : i)),
+        },
+      }
     case 'OPEN_SHEET':
-      return { ...state, sheetOpen: true, sheetMeal: action.meal }
+      return { ...state, sheetOpen: true, sheetMeal: action.meal, editing: null }
+    case 'OPEN_EDIT':
+      return { ...state, sheetOpen: true, sheetMeal: action.meal, editing: { meal: action.meal, uid: action.uid } }
     case 'CLOSE_SHEET':
-      return { ...state, sheetOpen: false }
+      return { ...state, sheetOpen: false, editing: null }
     case 'SET_SCREEN':
       return { ...state, screen: action.screen, sheetOpen: false }
     case 'SET_GOAL':

@@ -2,10 +2,11 @@ import { supabase } from './supabase'
 import type { AppState } from '../types'
 
 // We persist everything except transient UI flags.
-export type PersistedState = Omit<AppState, 'sheetOpen' | 'screen' | 'hydrating'>
+export type PersistedState = Omit<AppState, 'sheetOpen' | 'screen' | 'hydrating' | 'editing'>
 
 export function toPersisted(state: AppState): PersistedState {
-  const { sheetOpen, screen, hydrating, ...rest } = state
+  const { sheetOpen, screen, hydrating, editing, ...rest } = state
+  void editing
   return rest
 }
 

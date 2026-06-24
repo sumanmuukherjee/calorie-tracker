@@ -66,10 +66,10 @@ export function Trends() {
   const latestWeight = state.weighIns.length ? state.weighIns[state.weighIns.length - 1].kg : state.profile.weightKg
   const weightChange = weightPoints.length >= 2 ? weightPoints[weightPoints.length - 1].kg - weightPoints[0].kg : null
 
-  const week = useMemo(() => lastNDates(7), [])
-  const weekKcal = week.map(kcalFor)
-  const dayLetters = week.map((ds) => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(ds + 'T00:00:00').getDay()])
-  const maxBar = Math.max(target * 1.2, ...weekKcal, 1)
+  const rangeKcal = rangeDates.map(kcalFor)
+  const dayLetters = rangeDates.map((ds) => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(ds + 'T00:00:00').getDay()])
+  const maxBar = Math.max(target * 1.2, ...rangeKcal, 1)
+  const hasRangeData = rangeKcal.some((v) => v > 0)
 
   const intakeVals = rangeDates.map(kcalFor).filter((v) => v > 0)
   const avgIntake = intakeVals.length ? Math.round(intakeVals.reduce((a, b) => a + b, 0) / intakeVals.length) : 0
@@ -144,21 +144,27 @@ export function Trends() {
       </div>
 
       <div className="eyebrow" style={{ marginBottom: 8 }}>
-        Calories · last 7 days
+        Calories · last {range} days
       </div>
-      <div style={{ position: 'relative', height: 84, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 7, marginBottom: 6 }}>
-        {weekKcal.map((v, i) => {
-          const ht = Math.round((v / maxBar) * 72)
-          const over = v > target
-          return (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ width: '100%', height: v > 0 ? Math.max(ht, 2) : 0, background: over ? 'var(--danger)' : 'var(--accent)', borderRadius: '4px 4px 0 0', opacity: over ? 0.85 : 1 }} />
-              <span className="tiny" style={{ color: 'var(--text-3)' }}>{dayLetters[i]}</span>
-            </div>
-          )
-        })}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: Math.round((1 - target / maxBar) * 72), borderTop: '1.5px dashed var(--text-3)' }} />
-      </div>
+      {hasRangeData ? (
+        <div style={{ position: 'relative', height: 84, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: range > 7 ? 2 : 7, marginBottom: 6 }}>
+          {rangeKcal.map((v, i) => {
+            const ht = Math.round((v / maxBar) * 72)
+            const over = v > target
+            return (
+              <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+                <div style={{ width: '100%', height: v > 0 ? Math.max(ht, 2) : 0, background: over ? 'var(--danger)' : 'var(--accent)', borderRadius: range > 30 ? '1px 1px 0 0' : '4px 4px 0 0', opacity: over ? 0.85 : 1 }} />
+                {range === 7 && <span className="tiny" style={{ color: 'var(--text-3)' }}>{dayLetters[i]}</span>}
+              </div>
+            )
+          })}
+          <div style={{ position: 'absolute', left: 0, right: 0, top: Math.round((1 - target / maxBar) * 72), borderTop: '1.5px dashed var(--text-3)' }} />
+        </div>
+      ) : (
+        <div className="strip" style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 6, padding: 14 }}>
+          No calories logged in the last {range} days yet.
+        </div>
+      )}
       <div className="tiny" style={{ color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
         <span style={{ width: 14, height: 2, background: 'var(--text-3)', display: 'inline-block', borderRadius: 2 }} />
         Goal {target.toLocaleString()}

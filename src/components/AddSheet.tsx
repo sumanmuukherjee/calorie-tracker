@@ -9,12 +9,29 @@ import { itemCount } from '../lib/format'
 // Amount picker shown after tapping a food. Database foods (per 100 g) are
 // entered in grams; recents are entered in servings of their portion. All
 // nutrition scales from the chosen amount.
-function QuantityPanel({ food, meal, onBack, onAdd }: { food: Food; meal: MealName; onBack: () => void; onAdd: (food: Food, qty: number) => void }) {
+function QuantityPanel({
+  food,
+  meal,
+  initialQty,
+  editMode,
+  onBack,
+  onAdd,
+  onRemove,
+}: {
+  food: Food
+  meal: MealName
+  initialQty?: number
+  editMode?: boolean
+  onBack: () => void
+  onAdd: (food: Food, qty: number) => void
+  onRemove?: () => void
+}) {
   const per100g = food.portion === 'per 100 g'
   const step = per100g ? 10 : 0.5
   const minA = per100g ? 1 : 0.25
-  const [amount, setAmount] = useState(per100g ? 100 : 1)
-  const [text, setText] = useState(() => String(per100g ? 100 : 1))
+  const initialAmount = initialQty != null ? (per100g ? initialQty * 100 : initialQty) : per100g ? 100 : 1
+  const [amount, setAmount] = useState(initialAmount)
+  const [text, setText] = useState(() => String(initialAmount))
 
   const setBoth = (n: number) => {
     const v = Math.max(minA, Math.round(n * 100) / 100)
@@ -62,7 +79,16 @@ function QuantityPanel({ food, meal, onBack, onAdd }: { food: Food; meal: MealNa
         </div>
       </div>
 
-      <button className="primary" onClick={() => onAdd(food, qty)}>Add to {meal}</button>
+      <button className="primary" onClick={() => onAdd(food, qty)}>{editMode ? 'Save changes' : `Add to ${meal}`}</button>
+      {editMode && onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          style={{ width: '100%', background: 'none', border: 'none', color: 'var(--danger)', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '12px 0 2px' }}
+        >
+          Remove from {meal}
+        </button>
+      )}
     </div>
   )
 }
@@ -130,13 +156,18 @@ export function AddSheet() {
   const mealItems = state.meals[state.sheetMeal]
   const mealKcal = Math.round(mealItems.reduce((a, i) => a + i.kcal * i.qty, 0))
 
+  // Edit-in-place: when a logged entry is tapped, the sheet opens straight into
+  // the quantity panel pre-filled with that entry.
+  const editing = state.editing
+  const editItem = editing ? state.meals[editing.meal].find((i) => i.uid === editing.uid) ?? null : null
+
   return (
     <>
       <div className={`backdrop ${state.sheetOpen ? 'on' : ''}`} onClick={close} />
       <div className={`sheet ${state.sheetOpen ? 'on' : ''}`} role="dialog" aria-label="Add food">
         <div className="grabber" />
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 600 }}>Add food</span>
+          <span style={{ fontSize: 16, fontWeight: 600 }}>{editItem ? 'Edit entry' : 'Add food'}</span>
           <button
             onClick={close}
             style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
@@ -145,7 +176,23 @@ export function AddSheet() {
           </button>
         </div>
 
-        {selected ? (
+        {editItem && editing ? (
+          <QuantityPanel
+            food={editItem}
+            meal={editing.meal}
+            initialQty={editItem.qty}
+            editMode
+            onBack={close}
+            onAdd={(_food, qty) => {
+              dispatch({ type: 'UPDATE_FOOD', meal: editing.meal, uid: editing.uid, qty })
+              close()
+            }}
+            onRemove={() => {
+              dispatch({ type: 'REMOVE_FOOD', meal: editing.meal, uid: editing.uid })
+              close()
+            }}
+          />
+        ) : selected ? (
           <QuantityPanel
             food={selected}
             meal={state.sheetMeal}

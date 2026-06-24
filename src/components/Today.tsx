@@ -129,13 +129,17 @@ export function Today() {
                   className="row-between"
                   style={{ padding: '7px 2px', borderTop: '0.5px solid var(--border)' }}
                 >
-                  <div style={{ minWidth: 0 }}>
+                  <button
+                    onClick={() => dispatch({ type: 'OPEN_EDIT', meal, uid: item.uid })}
+                    aria-label={`Edit ${item.name}`}
+                    style={{ minWidth: 0, flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text)' }}
+                  >
                     <div style={{ fontSize: 13 }}>{item.name}</div>
                     <div className="tiny" style={{ color: 'var(--text-3)' }}>
                       {amountLabel(item)}
                       {item.loggedAt ? ` · ${timeLabel(item.loggedAt)}` : ''}
                     </div>
-                  </div>
+                  </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{Math.round(item.kcal * item.qty)}</span>
                     <i

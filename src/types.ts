@@ -45,6 +45,7 @@ export interface AppState {
   meals: Record<MealName, LoggedFood[]>
   sheetOpen: boolean
   sheetMeal: MealName
+  editing: { meal: MealName; uid: string } | null // a logged entry being edited in place
   hydrating: boolean
   avatarUrl?: string
   currentDate: string // YYYY-MM-DD the meals belong to
