@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { uploadAvatar } from '../lib/avatar'
 import { AvatarCropper } from './AvatarCropper'
-import { ACTIVITY_LEVELS, CALORIE_FLOOR, dailyTarget, macroTargets, targetFloorApplied, tdee } from '../lib/nutrition'
+import { ACTIVITY_LEVELS, CALORIE_FLOOR, adaptiveMaintenance, dailyTarget, macroTargets, targetFloorApplied, tdee } from '../lib/nutrition'
 import { fromKg, getWeightUnit, setWeightUnitPref, toKg, type WeightUnit } from '../lib/units'
 import type { Goal, Profile } from '../types'
 
@@ -111,7 +111,10 @@ export function Onboarding() {
     }
   }
 
-  const maintenance = tdee(profile)
+  const mifflin = tdee(profile)
+  const adaptiveEst = adaptiveMaintenance(state.weighIns, state.history)
+  const useAdaptive = state.adaptiveTdee && adaptiveEst != null
+  const maintenance = useAdaptive ? (adaptiveEst as number) : mifflin
   const recommended = dailyTarget(maintenance, goal, rate)
   const target = targetMode === 'custom' ? customTargetNum : recommended
   const macros = macroTargets(target, profile.weightKg, goal)
@@ -194,8 +197,35 @@ export function Onboarding() {
         Set your daily goal
       </h1>
       <p className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 16px' }}>
-        From your profile we estimate you burn about <b style={{ color: 'var(--text)' }}>{maintenance.toLocaleString()} kcal</b>/day.
+        {useAdaptive ? 'Based on your weight trend, you burn about ' : 'From your profile we estimate you burn about '}
+        <b style={{ color: 'var(--text)' }}>{maintenance.toLocaleString()} kcal</b>/day.
       </p>
+
+      {adaptiveEst != null && (
+        <div className="strip" style={{ padding: '12px 14px', marginBottom: 18 }}>
+          <div className="row-between">
+            <span className="eyebrow">Maintenance estimate</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {([['profile', 'Profile'], ['adaptive', 'Adaptive']] as const).map(([k, lbl]) => {
+                const on = (k === 'adaptive') === state.adaptiveTdee
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => dispatch({ type: 'SET_ADAPTIVE_TDEE', value: k === 'adaptive' })}
+                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '0.5px solid var(--border)', background: on ? 'var(--accent)' : 'transparent', color: on ? '#fff' : 'var(--text-3)', cursor: 'pointer' }}
+                  >
+                    {lbl}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="tiny" style={{ color: 'var(--text-2)', marginTop: 8, lineHeight: 1.5 }}>
+            From your weight trend vs. what you logged, your maintenance looks like about <b style={{ color: 'var(--text)' }}>{adaptiveEst.toLocaleString()} kcal</b> — vs. <b style={{ color: 'var(--text)' }}>{mifflin.toLocaleString()}</b> from your profile. The 1,200-kcal floor and weekly-pace cap still apply.
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ padding: '12px 14px', marginBottom: 18 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>Your details</div>

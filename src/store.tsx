@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { AppState, Food, Goal, LoggedFood, MealName, Profile, Screen } from './types'
 import { MEAL_ORDER } from './types'
 import { FOODS, SEED_MEALS } from './data/foods'
-import { dailyTarget, macroTargets, tdee } from './lib/nutrition'
+import { adaptiveMaintenance, dailyTarget, macroTargets, tdee } from './lib/nutrition'
 import { isCloud } from './lib/supabase'
 import { loadUserState, saveUserState, toPersisted, type PersistedState } from './lib/cloud'
 import { useAuth } from './auth'
@@ -20,6 +20,7 @@ type Action =
   | { type: 'SET_GOAL'; goal: Goal }
   | { type: 'SET_RATE'; rate: number }
   | { type: 'SET_CUSTOM_TARGET'; value: number | null }
+  | { type: 'SET_ADAPTIVE_TDEE'; value: boolean }
   | { type: 'FINISH_ONBOARDING'; profile: Profile; goal: Goal; rate: number; customTarget: number | null }
   | { type: 'HYDRATE'; state: PersistedState }
   | { type: 'SET_HYDRATING'; value: boolean }
@@ -116,6 +117,7 @@ function freshDefault(): AppState {
     goal: 'lose',
     rate: 0.5,
     customTarget: null,
+    adaptiveTdee: false,
     exercise: 0,
     meals: emptyMeals(),
     sheetOpen: false,
@@ -202,6 +204,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, rate: action.rate }
     case 'SET_CUSTOM_TARGET':
       return { ...state, customTarget: action.value }
+    case 'SET_ADAPTIVE_TDEE':
+      return { ...state, adaptiveTdee: action.value }
     case 'FINISH_ONBOARDING':
       return { ...state, profile: action.profile, goal: action.goal, rate: action.rate, customTarget: action.customTarget, onboarded: true, screen: 'today' }
     case 'HYDRATE':
@@ -306,7 +310,8 @@ export interface DerivedTotals {
 
 export function useTotals(): DerivedTotals {
   const { state } = useStore()
-  const maintenance = tdee(state.profile)
+  const adaptive = state.adaptiveTdee ? adaptiveMaintenance(state.weighIns, state.history) : null
+  const maintenance = adaptive ?? tdee(state.profile)
   const recommended = dailyTarget(maintenance, state.goal, state.rate)
   const target = state.customTarget != null ? state.customTarget : recommended
   const macroGoals = macroTargets(target, state.profile.weightKg, state.goal)

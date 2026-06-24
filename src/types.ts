@@ -41,6 +41,7 @@ export interface AppState {
   goal: Goal
   rate: number
   customTarget: number | null // manual daily calorie target; null = use computed
+  adaptiveTdee: boolean // F12: estimate maintenance from weight-trend vs intake
   exercise: number
   meals: Record<MealName, LoggedFood[]>
   sheetOpen: boolean

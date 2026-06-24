@@ -1,4 +1,4 @@
-import type { Goal, Profile } from '../types'
+import type { Goal, Profile, WeighIn } from '../types'
 
 export const ACTIVITY_LEVELS = [
   { label: 'Sedentary', value: 1.2 },
@@ -30,6 +30,33 @@ export function dailyTarget(maintenance: number, goal: Goal, rateKgPerWeek: numb
 /** True when the computed deficit would push the target below the safe floor. */
 export function targetFloorApplied(maintenance: number, goal: Goal, rateKgPerWeek: number): boolean {
   return goal === 'lose' && rawTarget(maintenance, goal, rateKgPerWeek) < CALORIE_FLOOR
+}
+
+// F12 — estimate real maintenance from energy balance: over the span between
+// the first and last weigh-in, weight change reflects (intake − maintenance).
+// So maintenance = avgIntake + (weightLost × 7700) / days. Returns null until
+// there's enough data (>=2 weigh-ins >=7 days apart and enough logged days).
+export function adaptiveMaintenance(weighIns: WeighIn[], history: Record<string, number>): number | null {
+  if (weighIns.length < 2) return null
+  const sorted = [...weighIns].sort((a, b) => a.date.localeCompare(b.date))
+  const first = sorted[0]
+  const last = sorted[sorted.length - 1]
+  const days = Math.round((new Date(last.date + 'T00:00:00').getTime() - new Date(first.date + 'T00:00:00').getTime()) / 86_400_000)
+  if (days < 7) return null
+  let sum = 0
+  let n = 0
+  for (const date in history) {
+    if (date >= first.date && date <= last.date && history[date] > 0) {
+      sum += history[date]
+      n++
+    }
+  }
+  if (n < Math.max(5, Math.round(days * 0.4))) return null
+  const avgIntake = sum / n
+  const lostKg = first.kg - last.kg
+  const maintenance = avgIntake + (lostKg * KCAL_PER_KG) / days
+  if (maintenance < 800 || maintenance > 6000) return null // discard implausible estimates
+  return Math.round(maintenance / 10) * 10
 }
 
 export interface MacroTargets {
